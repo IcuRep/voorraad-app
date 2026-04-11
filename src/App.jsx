@@ -729,7 +729,7 @@ const filteredGlobalItems = globalSearch
 
       <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
         <img
-          src="/app-logo.png"
+          src="/logo.png"
           alt="logo"
           style={{ height: "28px", objectFit: "contain" }}
         />
