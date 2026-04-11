@@ -967,17 +967,6 @@ const addApprovedCreator = async () => {
   }
 
   const { error } = await supabase
-    .from("approved_creators")
-    .upsert(
-      {
-        email,
-        active: true,
-        single_use: true,
-        used_at: null,
-        used_by_bus_code: null,
-      },
-      { onConflict: "email" }
-    );
 
   if (error) {
     console.error("approved_creators add error:", error);
