@@ -347,7 +347,7 @@ const CSS = `
 
 body { background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-serif; overflow-x: hidden; }
 
-.app { min-height: 100vh; max-width: 600px; margin: 0 auto; padding-bottom: 100px; }
+.app { min-height: 100vh; width: 100%; padding-bottom: 100px; }
 
 /* ── Header ── */
 .header {
@@ -385,7 +385,7 @@ body { background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-s
 .breadcrumb .sep { color: var(--border); }
 
 /* ── Van Overview ── */
-.van-view { padding: 16px; }
+.van-view { padding: 0; }
 .van-svg-container {
   background: var(--surface); border-radius: var(--radius); padding: 24px 16px;
   border: 1px solid var(--border); margin-bottom: 16px;
@@ -410,7 +410,7 @@ body { background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-s
 .side-card:hover::after { transform: scaleX(1); }
 
 /* ── Drawer List ── */
-.drawer-list { padding: 16px; }
+.drawer-list { padding: 0; }
 .drawer-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
 .drawer-btn {
   background: var(--surface); border: 1px solid var(--border);
@@ -426,7 +426,7 @@ body { background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-s
 .stelling-img { width: 100%; border-radius: var(--radius); margin-bottom: 16px; border: 1px solid var(--border); }
 
 /* ── Article List ── */
-.article-list { padding: 16px; }
+.article-list { padding: 0; }
 .article-item {
   display: flex; align-items: center; gap: 12px;
   background: var(--surface); border: 1px solid var(--border);
@@ -459,7 +459,7 @@ body { background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-s
 @keyframes fadeIn { from { opacity: 0; } }
 .modal-sheet {
   background: var(--surface); border-radius: 20px 20px 0 0; padding: 24px 20px 40px;
-  width: 100%; max-width: 500px; animation: slideUp .3s;
+  width: 100%; animation: slideUp .3s;
 }
 @keyframes slideUp { from { transform: translateY(100%); } }
 .modal-handle { width: 40px; height: 4px; background: var(--border); border-radius: 2px; margin: 0 auto 20px; }
@@ -496,7 +496,7 @@ body { background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-s
 }
 .cart-sheet {
   background: var(--surface); border-radius: 20px 20px 0 0; padding: 24px 20px 40px;
-  width: 100%; max-width: 500px; max-height: 85vh; display: flex; flex-direction: column;
+  width: 100%; max-height: 85vh; display: flex; flex-direction: column;
   animation: slideUp .3s;
 }
 .cart-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
