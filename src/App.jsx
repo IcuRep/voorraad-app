@@ -928,6 +928,17 @@ const createInviteCode = async () => {
 
 
   const loadApprovedCreators = async () => {
+  const currentEmail = (session?.email || busInfo?.ownerEmail || "").toLowerCase();
+  const mainAdminEmail = "m.slootemaker@bonarius.com";
+  const admin = currentEmail === mainAdminEmail;
+
+  setIsMainAdmin(admin);
+
+  if (!admin) {
+    setApprovedCreators([]);
+    return;
+  }
+
   const { data, error } = await supabase
     .from("approved_creators")
     .select("*")
@@ -976,6 +987,22 @@ const addApprovedCreator = async () => {
 
   setNewCreatorEmail("");
   showToastMsg("Monteur toegevoegd");
+  await loadApprovedCreators();
+};
+
+const removeApprovedCreator = async (email) => {
+  const { error } = await supabase
+    .from("approved_creators")
+    .update({ active: false })
+    .eq("email", email);
+
+  if (error) {
+    console.error("Deactivate error:", error);
+    showToastMsg("Deactiveren mislukt");
+    return;
+  }
+
+  showToastMsg("Monteur gedeactiveerd");
   await loadApprovedCreators();
 };
 
