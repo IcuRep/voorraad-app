@@ -1184,6 +1184,52 @@ const removeApprovedCreator = async (email) => {
 )}
         <div className="settings-section"><div className="settings-label">Ingelogd als</div><div className="settings-value">{session.name} <span style={{color:'var(--accent)',fontSize:12,fontFamily:'Space Mono, monospace'}}>({session.role})</span></div></div>
         <div className="settings-section"><div className="settings-label">Teamleden ({busInfo?.members?.length})</div>{busInfo?.members?.map(m => (<div key={m.id} className="member-item"><div><div className="member-name">{m.name}</div><div className="member-role">{m.role}</div></div>{session.role === "monteur" && m.role === "hulpmonteur" && <button className="member-remove" onClick={() => removeMember(m.id)}>Verwijderen</button>}</div>))}</div>
+{isMainAdmin && (
+  <div className="settings-section">
+    <div className="settings-label">Toegestane monteurs voor nieuwe bussen</div>
+
+    <input
+      className="auth-input"
+      placeholder="E-mailadres toevoegen"
+      value={newCreatorEmail}
+      onChange={e => setNewCreatorEmail(e.target.value)}
+      style={{ marginBottom: 10 }}
+    />
+
+    <button
+      className="auth-btn auth-btn-primary"
+      onClick={addApprovedCreator}
+    >
+      Monteur toevoegen
+    </button>
+
+    <div style={{ marginTop: 12 }}>
+      {approvedCreators.length === 0 ? (
+        <div style={{ fontSize: 13, color: "var(--text2)" }}>
+          Nog geen toegestane monteurs toegevoegd
+        </div>
+      ) : (
+        approvedCreators.map(row => (
+          <div key={row.email} className="member-item">
+            <div>
+              <div className="member-name">{row.email}</div>
+              <div className="member-role">
+                {row.active ? "actief" : "inactief"}
+              </div>
+            </div>
+
+            <button
+              className="member-remove"
+              onClick={() => removeApprovedCreator(row.email)}
+            >
+              Verwijderen
+            </button>
+          </div>
+        ))
+      )}
+    </div>
+  </div>
+)}
         <button className="auth-btn auth-btn-secondary" onClick={logout} style={{marginTop:16}}>Uitloggen</button>
       </div>
     </div>{toast && <div className="toast">{toast}</div>}</>
