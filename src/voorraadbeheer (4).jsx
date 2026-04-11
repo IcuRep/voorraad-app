@@ -3,14 +3,19 @@ import { useState, useEffect, useRef, useCallback } from "react";
 // ─── HELPERS ────────────────────────────────────────────────────────────
 const genId = () => Math.random().toString(36).substring(2,8);
 const genBusCode = () => "BUS" + Math.random().toString(36).substring(2,6).toUpperCase();
-const S = window.storage;
+
 const sGet = async (k, shared) => {
-  try { const r = await S.get(k, !!shared); return r && r.value ? JSON.parse(r.value) : null; }
-  catch(e) { return null; }
+  try {
+    const r = shared ? await window.storage.get(k, true) : await window.storage.get(k);
+    return r && r.value ? JSON.parse(r.value) : null;
+  } catch { return null; }
 };
 const sSet = async (k, v, shared) => {
-  try { const r = await S.set(k, JSON.stringify(v), !!shared); return !!r; }
-  catch(e) { return false; }
+  try {
+    if (shared) await window.storage.set(k, JSON.stringify(v), true);
+    else await window.storage.set(k, JSON.stringify(v));
+    return true;
+  } catch(e) { return String(e.message || e); }
 };
 
 const LINKER_LADEN = {
@@ -520,7 +525,7 @@ export default function App() {
       setBusInfo(bus);
       if (!bus.members.some(m => m.id === session.userId)) {
         setSession(null); setBusInfo(null); setCart([]);
-        try { await S.delete("my-session", false); } catch {}
+        try { await window.storage.delete("my-session", false); } catch {}
       }
     }
   }, [session]);
@@ -537,12 +542,9 @@ export default function App() {
     if (!authName.trim() || !authBusName.trim()) { setAuthError("Vul alle velden in"); return; }
     const userId = genId(), code = genBusCode();
     const bus = { name: authBusName.trim(), code, monteurId: userId, members: [{ id: userId, name: authName.trim(), role: "monteur" }] };
-    const ok1 = await sSet("bus_" + code, bus, true);
-    const ok2 = await sSet("orders_" + code, [], true);
-    if (!ok1 || !ok2) { setAuthError("Opslaan mislukt, probeer opnieuw"); return; }
-    // Verify write
-    const check = await sGet("bus_" + code, true);
-    if (!check) { setAuthError("Bus kon niet worden aangemaakt, probeer opnieuw"); return; }
+    const r1 = await sSet("bus_" + code, bus, true);
+    const r2 = await sSet("orders_" + code, [], true);
+    if (r1 !== true || r2 !== true) { setAuthError("Opslaan mislukt: " + (r1 !== true ? r1 : r2)); return; }
     const sess = { userId, name: authName.trim(), busCode: code, role: "monteur" };
     await sSet("my-session", sess, false);
     setSession(sess); setBusInfo(bus); setCart([]);
@@ -574,7 +576,7 @@ export default function App() {
   };
 
   const logout = async () => {
-    try { await S.delete("my-session", false); } catch {}
+    try { await window.storage.delete("my-session", false); } catch {}
     setSession(null); setBusInfo(null); setCart([]); setAuthScreen("welcome");
     setAuthName(""); setAuthCode(""); setAuthBusName(""); setAuthError("");
     setView("home"); setSide(null); setDrawer(null);
@@ -623,7 +625,7 @@ export default function App() {
 
   if (!session) return (
     <><style>{CSS}</style><div className="auth-wrap"><div className="auth-card">
-      <div className="auth-logo">Bonarius</div>
+      <div className="auth-logo"><img src="/logo.png" alt="logo" style={{height:'28px',objectFit:'contain',marginRight:8,verticalAlign:'middle'}} />Bonarius</div>
       {authScreen === "welcome" && <><div className="auth-title">Voorraadbeheer</div><div style={{textAlign:'center',color:'var(--text2)',fontSize:14,marginBottom:24}}>Beheer de voorraad in je bedrijfsbus samen met je team</div><button className="auth-btn auth-btn-primary" onClick={() => { setAuthScreen("create"); setAuthError(""); }}>🚐 Nieuwe bus aanmaken</button><div className="auth-divider">of</div><button className="auth-btn auth-btn-blue" onClick={() => { setAuthScreen("join"); setAuthError(""); }}>🔑 Deelnemen aan een bus</button></>}
       {authScreen === "create" && <><div className="auth-title">Bus aanmaken</div>{authError && <div className="auth-error">{authError}</div>}<input className="auth-input" placeholder="Jouw naam" value={authName} onChange={e => { setAuthName(e.target.value); setAuthError(""); }} /><input className="auth-input" placeholder="Naam van de bus (bijv. Movano Marchel)" value={authBusName} onChange={e => { setAuthBusName(e.target.value); setAuthError(""); }} /><button className="auth-btn auth-btn-primary" onClick={createBus}>Bus aanmaken</button><button className="auth-btn auth-btn-secondary" onClick={() => setAuthScreen("welcome")}>Terug</button><div className="auth-sub">Je ontvangt een buscode om te delen met je hulpmonteur</div></>}
       {authScreen === "join" && <><div className="auth-title">Deelnemen</div>{authError && <div className="auth-error">{authError}</div>}<input className="auth-input" placeholder="Jouw naam" value={authName} onChange={e => { setAuthName(e.target.value); setAuthError(""); }} /><input className="auth-input" placeholder="Buscode (bijv. BUS7X2K)" value={authCode} onChange={e => { setAuthCode(e.target.value.toUpperCase()); setAuthError(""); }} style={{fontFamily:'Space Mono, monospace',letterSpacing:2}} /><button className="auth-btn auth-btn-blue" onClick={joinBus}>Deelnemen</button><button className="auth-btn auth-btn-secondary" onClick={() => setAuthScreen("welcome")}>Terug</button><div className="auth-sub">Vraag de buscode aan je monteur</div></>}
