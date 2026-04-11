@@ -603,10 +603,12 @@ export default function App() {
   const [drawer, setDrawer] = useState(null);
   const [cart, setCart] = useState([]);
   const [showCart, setShowCart] = useState(false);
-  const [modal, setModal] = useState(null); // { item }
+  const [showGlobalSearch, setShowGlobalSearch] = useState(false);
+  const [modal, setModal] = useState(null);
   const [qty, setQty] = useState(1);
   const [toast, setToast] = useState(null);
   const [search, setSearch] = useState("");
+  const [globalSearch, setGlobalSearch] = useState("");
   const toastTimer = useRef(null);
 
   // Load cart from persistent storage
@@ -676,6 +678,26 @@ export default function App() {
   const filteredItems = search
     ? drawerItems.filter(i => i.name.toLowerCase().includes(search.toLowerCase()) || i.code.includes(search))
     : drawerItems;
+    const allDrawerEntries = [
+  ...Object.entries(LINKER_LADEN).flatMap(([drawerName, items]) =>
+    Array.isArray(items)
+      ? items.map(item => ({ ...item, side: "linker", drawer: drawerName }))
+      : []
+  ),
+  ...Object.entries(RECHTER_LADEN).flatMap(([drawerName, items]) =>
+    Array.isArray(items)
+      ? items.map(item => ({ ...item, side: "rechter", drawer: drawerName }))
+      : []
+  ),
+];
+
+const filteredGlobalItems = globalSearch
+  ? allDrawerEntries.filter(
+      i =>
+        i.name.toLowerCase().includes(globalSearch.toLowerCase()) ||
+        i.code.includes(globalSearch)
+    )
+  : [];
 
   return (
     <>
@@ -714,10 +736,30 @@ export default function App() {
 
 </div>
             </div>
-            <button className="cart-btn" onClick={() => setShowCart(true)}>
-              <IconCart/> Lijst
-              {cartCount > 0 && <span className="cart-badge">{cartCount}</span>}
-            </button>
+            <div style={{ display: "flex", flexDirection: "column", gap: "8px", alignItems: "flex-end" }}>
+  <button className="cart-btn" onClick={() => setShowCart(true)}>
+    <IconCart/> Lijst
+    {cartCount > 0 && <span className="cart-badge">{cartCount}</span>}
+  </button>
+
+  <button
+    onClick={() => setShowGlobalSearch(true)}
+    style={{
+      width: "44px",
+      height: "44px",
+      borderRadius: "12px",
+      border: "none",
+      background: "var(--surface2)",
+      color: "white",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      cursor: "pointer"
+    }}
+  >
+    <IconSearch />
+  </button>
+</div>
           </div>
           {/* Breadcrumb */}
           <div className="breadcrumb">
@@ -855,6 +897,71 @@ export default function App() {
             </div>
           </div>
         )}
+
+        {showGlobalSearch && (
+  <div className="cart-overlay" onClick={() => setShowGlobalSearch(false)}>
+    <div className="cart-sheet" onClick={e => e.stopPropagation()}>
+      <div className="modal-handle" />
+      <div className="cart-header">
+        <div className="cart-title">Zoek in alle lades</div>
+        <button className="cart-close" onClick={() => setShowGlobalSearch(false)}>✕</button>
+      </div>
+
+      <div className="search-bar" style={{ marginBottom: 16 }}>
+        <span className="search-icon"><IconSearch /></span>
+        <input
+          placeholder="Zoek artikel of code..."
+          value={globalSearch}
+          onChange={e => setGlobalSearch(e.target.value)}
+          autoFocus
+        />
+        {globalSearch && (
+          <button
+            onClick={() => setGlobalSearch("")}
+            style={{ background: "none", border: "none", color: "var(--text2)", fontSize: 18, cursor: "pointer" }}
+          >
+            ✕
+          </button>
+        )}
+      </div>
+
+      <div className="cart-items">
+        {!globalSearch && (
+          <div className="cart-empty">Typ een artikelnaam of code</div>
+        )}
+
+        {globalSearch && filteredGlobalItems.length === 0 && (
+          <div className="cart-empty">Geen artikelen gevonden</div>
+        )}
+
+        {filteredGlobalItems.map((item, i) => (
+          <div
+            key={`${item.side}-${item.drawer}-${item.code}-${i}`}
+            className="article-item"
+            onClick={() => {
+              setSide(item.side);
+              setDrawer(item.drawer);
+              setView("drawer");
+              setShowGlobalSearch(false);
+              setSearch("");
+              setModal(item);
+              setQty(item.qty);
+            }}
+          >
+            <img src={item.img} alt="" loading="lazy" />
+            <div className="article-info">
+              <div className="article-name">{item.name}</div>
+              <div className="article-code">
+                {item.code} • {item.side === "linker" ? "Links" : "Rechts"} • {item.drawer}
+              </div>
+            </div>
+            <div className="article-qty-badge">std: {item.qty}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  </div>
+)}
 
         {/* Toast */}
         {toast && <div className="toast">{toast}</div>}
