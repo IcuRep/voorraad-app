@@ -1236,58 +1236,7 @@ const removeApprovedCreator = async (email) => {
     </div>
   </div>
 )}
-{isMainAdmin && (
-  <div className="settings-section">
-    <div className="settings-label">Toegestane monteurs voor nieuwe bussen</div>
 
-    <input
-      className="auth-input"
-      placeholder="E-mailadres toevoegen"
-      value={newCreatorEmail}
-      onChange={e => setNewCreatorEmail(e.target.value)}
-      style={{ marginBottom: 10 }}
-    />
-
-    <button
-      className="auth-btn auth-btn-primary"
-      onClick={addApprovedCreator}
-    >
-      Monteur toevoegen
-    </button>
-
-    <div style={{ marginTop: 12 }}>
-      {approvedCreators.length === 0 ? (
-        <div style={{ fontSize: 13, color: "var(--text2)" }}>
-          Nog geen toegestane monteurs toegevoegd
-        </div>
-      ) : (
-        approvedCreators.map(row => (
-          <div key={row.email} className="member-item">
-            <div>
-              <div className="member-name">{row.email}</div>
-              <div className="member-role">
-  {row.email === "m.slootemaker@bonarius.com"
-    ? "hoofdadmin"
-    : row.active
-    ? "toegestaan"
-    : "inactief"}
-</div>
-            </div>
-
-            {row.email !== "m.slootemaker@bonarius.com" && (
-  <button
-    className="member-remove"
-    onClick={() => removeApprovedCreator(row.email)}
-  >
-    Verwijderen
-  </button>
-)}
-          </div>
-        ))
-      )}
-    </div>
-  </div>
-)}
         <button className="auth-btn auth-btn-secondary" onClick={logout} style={{marginTop:16}}>Uitloggen</button>
       </div>
     </div>{toast && <div className="toast">{toast}</div>}</>
