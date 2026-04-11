@@ -706,6 +706,20 @@ const filteredGlobalItems = globalSearch
         {/* Header */}
         <div className="header">
           <div className="header-top">
+  <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+    <img 
+      src="/app-logo.png" 
+      alt="logo" 
+      style={{ height: "28px", objectFit: "contain" }} 
+    />
+    <div className="logo-text">Bonarius</div>
+  </div>
+
+  <button className="cart-btn" onClick={() => setShowCart(true)}>
+    <IconCart />
+    {cartCount > 0 && <div className="cart-badge">{cartCount}</div>}
+  </button>
+</div>
             <div>
               {view !== "home" && (
                 <button onClick={goBack} style={{background:'none',border:'none',color:'white',cursor:'pointer',padding:'4px 0',display:'flex',alignItems:'center',gap:4}}>
