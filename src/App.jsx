@@ -866,6 +866,8 @@ const joinBus = async () => {
   setAuthError("");
   setLatestInviteCode("");
 };
+
+const removeMember = async (mid) => {
   if (!busInfo || session.role !== "monteur") return;
 
   await supabase
