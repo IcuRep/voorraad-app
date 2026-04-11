@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import { supabase } from "./supabase";
 
 // ─── HELPERS ────────────────────────────────────────────────────────────
 const genId = () => Math.random().toString(36).substring(2,8);
@@ -12,10 +13,20 @@ const sGet = async (k, shared) => {
 };
 const sSet = async (k, v, shared) => {
   try {
-    if (shared) await window.storage.set(k, JSON.stringify(v), true);
-    else await window.storage.set(k, JSON.stringify(v));
+    if (!window.storage || !window.storage.set) {
+      return "window.storage is niet beschikbaar";
+    }
+
+    if (shared) {
+      await window.storage.set(k, JSON.stringify(v), true);
+    } else {
+      await window.storage.set(k, JSON.stringify(v));
+    }
+
     return true;
-  } catch(e) { return String(e.message || e); }
+  } catch (e) {
+    return String(e.message || e);
+  }
 };
 
 const LINKER_LADEN = {
@@ -503,33 +514,64 @@ export default function App() {
   const pollRef = useRef(null);
 
   useEffect(() => {
-    (async () => {
-      const sess = await sGet("my-session", false);
-      if (sess) {
-        const bus = await sGet("bus_" + sess.busCode, true);
-        if (bus && bus.members.some(m => m.id === sess.userId)) {
-          setSession(sess); setBusInfo(bus);
-          const orders = await sGet("orders_" + sess.busCode, true);
-          if (orders) setCart(orders);
-        }
+  (async () => {
+    try {
+      const raw = localStorage.getItem("my-session");
+      const sess = raw ? JSON.parse(raw) : null;
+
+      if (!sess) {
+        setLoading(false);
+        return;
       }
+
+      setSession(sess);
+
+      const { data: busRow, error: busError } = await supabase
+        .from("buses")
+        .select("*")
+        .eq("code", sess.busCode)
+        .maybeSingle();
+
+      if (busError || !busRow) {
+        setLoading(false);
+        return;
+      }
+
+      const { data: memberRows, error: memberError } = await supabase
+        .from("bus_members")
+        .select("*")
+        .eq("bus_code", sess.busCode);
+
+      const members = memberError || !memberRows
+        ? []
+        : memberRows.map(m => ({
+            id: m.member_id,
+            name: m.name,
+            role: m.role,
+          }));
+
+      setBusInfo({
+        name: busRow.name,
+        code: busRow.code,
+        ownerEmail: busRow.owner_email,
+        members,
+      });
+
+      const { data: orderRow } = await supabase
+        .from("bus_orders")
+        .select("*")
+        .eq("bus_code", sess.busCode)
+        .maybeSingle();
+
+      setCart(orderRow?.items || []);
       setLoading(false);
-    })();
-  }, []);
+    } catch (e) {
+      setLoading(false);
+    }
+  })();
+}, []);
 
   const refreshData = useCallback(async () => {
-    if (!session) return;
-    const orders = await sGet("orders_" + session.busCode, true);
-    if (orders) setCart(orders);
-    const bus = await sGet("bus_" + session.busCode, true);
-    if (bus) {
-      setBusInfo(bus);
-      if (!bus.members.some(m => m.id === session.userId)) {
-        setSession(null); setBusInfo(null); setCart([]);
-        try { await window.storage.delete("my-session", false); } catch {}
-      }
-    }
-  }, [session]);
 
   useEffect(() => {
     if (!session) return;
@@ -537,7 +579,19 @@ export default function App() {
     return () => clearInterval(pollRef.current);
   }, [session, refreshData]);
 
-  const saveCart = async (nc) => { setCart(nc); if (session) await sSet("orders_" + session.busCode, nc, true); };
+  const saveCart = async (nc) => {
+  setCart(nc);
+
+  if (!session) return;
+
+  await supabase
+    .from("bus_orders")
+    .update({
+      items: nc,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("bus_code", session.busCode);
+};
 
   const createBus = async () => {
   const name = authName.trim();
@@ -588,63 +642,189 @@ export default function App() {
   const userId = genId();
   const code = genBusCode();
 
-  const bus = {
-    name: busName,
-    code,
-    ownerEmail: email,
-    monteurId: userId,
-    members: [
-      { id: userId, name, role: "monteur" }
-    ]
-  };
+  const { error: busInsertError } = await supabase
+    .from("buses")
+    .insert({
+      code,
+      name: busName,
+      owner_email: email,
+      owner_name: name,
+    });
 
-  const r1 = await sSet("bus_" + code, bus, true);
-  const r2 = await sSet("orders_" + code, [], true);
-
-  if (r1 !== true || r2 !== true) {
-    setAuthError("Opslaan mislukt: " + (r1 !== true ? r1 : r2));
+  if (busInsertError) {
+    setAuthError("Bus opslaan mislukt");
     return;
   }
 
-  const sess = { userId, name, email, busCode: code, role: "monteur" };
-  await sSet("my-session", sess, false);
+  const { error: memberInsertError } = await supabase
+    .from("bus_members")
+    .insert({
+      bus_code: code,
+      member_id: userId,
+      name,
+      role: "monteur",
+    });
+
+  if (memberInsertError) {
+    setAuthError("Buslid opslaan mislukt");
+    return;
+  }
+
+  const { error: orderInsertError } = await supabase
+    .from("bus_orders")
+    .insert({
+      bus_code: code,
+      items: [],
+    });
+
+  if (orderInsertError) {
+    setAuthError("Bestellijst aanmaken mislukt");
+    return;
+  }
+
+  const sess = {
+    userId,
+    name,
+    email,
+    busCode: code,
+    role: "monteur",
+  };
+
+  localStorage.setItem("my-session", JSON.stringify(sess));
 
   setSession(sess);
-  setBusInfo(bus);
+  setBusInfo({
+    name: busName,
+    code,
+    ownerEmail: email,
+    members: [{ id: userId, name, role: "monteur" }],
+  });
   setCart([]);
+  setAuthError("");
 };
 
   const joinBus = async () => {
-    if (!authName.trim() || !authCode.trim()) { setAuthError("Vul alle velden in"); return; }
-    const code = authCode.trim().toUpperCase().replace(/[^A-Z0-9]/g, "");
-    // Try shared first, then fallback
-    let bus = await sGet("bus_" + code, true);
-    if (!bus) bus = await sGet("bus_" + code, false);
-    if (!bus) { setAuthError("Buscode \"" + code + "\" niet gevonden. Controleer de code en probeer opnieuw."); return; }
-    if (bus.members.some(m => m.name.toLowerCase() === authName.trim().toLowerCase())) { setAuthError("Er is al iemand met deze naam in deze bus"); return; }
-    const userId = genId();
-    bus.members.push({ id: userId, name: authName.trim(), role: "hulpmonteur" });
-    await sSet("bus_" + code, bus, true);
-    const sess = { userId, name: authName.trim(), busCode: code, role: "hulpmonteur" };
-    await sSet("my-session", sess, false);
-    setSession(sess); setBusInfo(bus);
-    const orders = await sGet("orders_" + code, true);
-    if (orders) setCart(orders);
+  const name = authName.trim();
+  const code = authCode.trim().toUpperCase().replace(/[^A-Z0-9]/g, "");
+
+  if (!name || !code) {
+    setAuthError("Vul alle velden in");
+    return;
+  }
+
+  const { data: busRow, error: busError } = await supabase
+    .from("buses")
+    .select("*")
+    .eq("code", code)
+    .maybeSingle();
+
+  if (busError || !busRow) {
+    setAuthError(`Buscode "${code}" niet gevonden. Controleer de code en probeer opnieuw.`);
+    return;
+  }
+
+  const { data: memberRows, error: memberError } = await supabase
+    .from("bus_members")
+    .select("*")
+    .eq("bus_code", code);
+
+  if (memberError) {
+    setAuthError("Leden laden mislukt");
+    return;
+  }
+
+  const nameExists = (memberRows || []).some(
+    m => m.name.toLowerCase() === name.toLowerCase()
+  );
+
+  if (nameExists) {
+    setAuthError("Er is al iemand met deze naam in deze bus");
+    return;
+  }
+
+  const userId = genId();
+
+  const { error: insertMemberError } = await supabase
+    .from("bus_members")
+    .insert({
+      bus_code: code,
+      member_id: userId,
+      name,
+      role: "hulpmonteur",
+    });
+
+  if (insertMemberError) {
+    setAuthError("Toevoegen aan bus mislukt");
+    return;
+  }
+
+  const sess = {
+    userId,
+    name,
+    busCode: code,
+    role: "hulpmonteur",
   };
+
+  localStorage.setItem("my-session", JSON.stringify(sess));
+
+  const updatedMembers = [
+    ...(memberRows || []).map(m => ({
+      id: m.member_id,
+      name: m.name,
+      role: m.role,
+    })),
+    { id: userId, name, role: "hulpmonteur" },
+  ];
+
+  const { data: orderRow } = await supabase
+    .from("bus_orders")
+    .select("*")
+    .eq("bus_code", code)
+    .maybeSingle();
+
+  setSession(sess);
+  setBusInfo({
+    name: busRow.name,
+    code: busRow.code,
+    ownerEmail: busRow.owner_email,
+    members: updatedMembers,
+  });
+  setCart(orderRow?.items || []);
+  setAuthError("");
+};
 
   const removeMember = async (mid) => {
-    if (!busInfo || session.role !== "monteur") return;
-    const u = { ...busInfo, members: busInfo.members.filter(m => m.id !== mid) };
-    await sSet("bus_" + busInfo.code, u, true);
-    setBusInfo(u);
-  };
+  if (!busInfo || session.role !== "monteur") return;
+
+  await supabase
+    .from("bus_members")
+    .delete()
+    .eq("bus_code", busInfo.code)
+    .eq("member_id", mid);
+
+  const updatedMembers = busInfo.members.filter(m => m.id !== mid);
+
+  setBusInfo({
+    ...busInfo,
+    members: updatedMembers,
+  });
+};
 
   const logout = async () => {
-    try { await window.storage.delete("my-session", false); } catch {}
-    setSession(null); setBusInfo(null); setCart([]); setAuthScreen("welcome");
-    setAuthName(""); setAuthEmail(""); setAuthCode(""); setAuthBusName(""); setAuthError("");
-    setView("home"); setSide(null); setDrawer(null);
-  };
+  localStorage.removeItem("my-session");
+  setSession(null);
+  setBusInfo(null);
+  setCart([]);
+  setAuthScreen("welcome");
+  setAuthName("");
+  setAuthEmail("");
+  setAuthCode("");
+  setAuthBusName("");
+  setAuthError("");
+  setView("home");
+  setSide(null);
+  setDrawer(null);
+};
 
   const showToastMsg = (m) => { setToast(m); if (toastTimer.current) clearTimeout(toastTimer.current); toastTimer.current = setTimeout(() => setToast(null), 2000); };
 
