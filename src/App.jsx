@@ -385,6 +385,7 @@ body { background:var(--bg); color:var(--text); font-family:'DM Sans',sans-serif
 .member-name { font-weight:500; }
 .member-role { font-size:12px; color:var(--text2); font-family:'Space Mono',monospace; }
 .member-remove { background:none; border:1px solid var(--danger); color:var(--danger); padding:6px 12px; border-radius:8px; font-size:12px; cursor:pointer; font-family:'DM Sans',sans-serif; }
+.member-activate { background:none; border:1px solid var(--success); color:var(--success); padding:6px 12px; border-radius:8px; font-size:12px; cursor:pointer; font-family:'DM Sans',sans-serif; }
 .header { background:linear-gradient(135deg,#0f2027,#203a43,#2c5364); padding:20px 16px 16px; position:sticky; top:0; z-index:50; border-bottom:1px solid var(--border); }
 .header-top { display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
 .logo-text { font-family:'Space Mono',monospace; font-size:11px; letter-spacing:3px; text-transform:uppercase; color:var(--accent); }
@@ -1266,11 +1267,11 @@ const reactivateApprovedCreator = async (email) => {
       </button>
     ) : (
       <button
-        className="member-remove"
-        onClick={() => reactivateApprovedCreator(row.email)}
-      >
-        Activeren
-      </button>
+  className="member-activate"
+  onClick={() => reactivateApprovedCreator(row.email)}
+>
+  Activeren
+</button>
     )}
   </>
 )}
