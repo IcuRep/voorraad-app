@@ -669,11 +669,6 @@ const saveCart = async (nc) => {
   }
 
   const { data: creatorRow, error: creatorError } = await supabase
-    .from("approved_creators")
-    .select("email, active")
-    .eq("email", email)
-    .eq("active", true)
-    .maybeSingle();
 
   if (creatorError) {
     setAuthError("Controle van toegestane e-mail mislukt");
@@ -681,11 +676,6 @@ const saveCart = async (nc) => {
   }
 
   const isAllowed = !!adminRow || !!creatorRow;
-
-  if (!isAllowed) {
-    setAuthError("Dit e-mailadres is niet gemachtigd om een nieuwe bus aan te maken");
-    return;
-  }
 
   const userId = genId();
   const code = genBusCode();
@@ -703,6 +693,17 @@ const saveCart = async (nc) => {
     setAuthError("Bus opslaan mislukt");
     return;
   }
+
+  // 🔒 markeer e-mail als gebruikt (indien single_use)
+if (creatorRow?.single_use) {
+  await supabase
+    .from("approved_creators")
+    .update({
+      used_at: new Date().toISOString(),
+      used_by_bus_code: code,
+    })
+    .eq("email", email);
+}
 
   const { error: memberInsertError } = await supabase
     .from("bus_members")
@@ -1214,16 +1215,22 @@ const removeApprovedCreator = async (email) => {
             <div>
               <div className="member-name">{row.email}</div>
               <div className="member-role">
-                {row.active ? "actief" : "inactief"}
-              </div>
+  {row.email === "m.slootemaker@bonarius.com"
+    ? "hoofdadmin"
+    : row.active
+    ? "toegestaan"
+    : "inactief"}
+</div>
             </div>
 
-            <button
-              className="member-remove"
-              onClick={() => removeApprovedCreator(row.email)}
-            >
-              Verwijderen
-            </button>
+            {row.email !== "m.slootemaker@bonarius.com" && (
+  <button
+    className="member-remove"
+    onClick={() => removeApprovedCreator(row.email)}
+  >
+    Verwijderen
+  </button>
+)}
           </div>
         ))
       )}
