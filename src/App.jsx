@@ -888,7 +888,31 @@ const joinBus = async () => {
   setLatestInviteCode("");
 };
 
-removeMember
+const removeMember = async (mid) => {
+  if (!busInfo || session.role !== "monteur") return;
+
+  const { error } = await supabase
+    .from("bus_members")
+    .delete()
+    .eq("bus_code", busInfo.code)
+    .eq("member_id", mid);
+
+  if (error) {
+    console.error("Remove member error:", error);
+    showToastMsg("Hulpmonteur verwijderen mislukt");
+    return;
+  }
+
+  const updatedMembers = busInfo.members.filter(m => m.id !== mid);
+
+  setBusInfo({
+    ...busInfo,
+    members: updatedMembers,
+  });
+
+  showToastMsg("Hulpmonteur verwijderd");
+  await refreshData();
+};
 
 const createInviteCode = async () => {
   if (!busInfo || session?.role !== "monteur") return;
@@ -991,6 +1015,18 @@ const addApprovedCreator = async () => {
   }
 
   const { error } = await supabase
+    .from("approved_creators")
+    .upsert(
+      {
+        email,
+        active: true,
+        single_use: true,
+        used_at: null,
+        used_by_bus_code: null,
+        created_by: session?.email || busInfo?.ownerEmail || "admin",
+      },
+      { onConflict: "email" }
+    );
 
   if (error) {
     console.error("approved_creators add error:", error);
