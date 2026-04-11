@@ -1016,7 +1016,7 @@ const createInviteCode = async () => {
     Alleen goedgekeurde e-mailadressen mogen een nieuwe bus aanmaken
   </div>
 </>}
-   {authScreen === "join" && (
+      {authScreen === "join" && (
   <>
     <div className="auth-title">Deelnemen</div>
 
@@ -1059,14 +1059,6 @@ const createInviteCode = async () => {
     </div>
   </>
 )}
-  className="auth-input"
-  placeholder="Uitnodigingscode (bijv. INV7X2K)"
-  value={authCode}
-  onChange={e => { setAuthCode(e.target.value.toUpperCase()); setAuthError(""); }}
-  style={{fontFamily:'Space Mono, monospace',letterSpacing:2}}
-/>
-
-<div className="auth-sub">Vraag de uitnodigingscode aan je monteur</div>
     </div></div></>
   );
 
