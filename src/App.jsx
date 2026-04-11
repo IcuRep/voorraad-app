@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import logo from "./assets/logo.png";
 
 // ─── DATA ───────────────────────────────────────────────────────────────
 const LINKER_LADEN = {
@@ -690,7 +691,11 @@ export default function App() {
                   <IconBack/><span style={{fontSize:14}}>Terug</span>
                 </button>
               )}
+              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+              <img src={logo} alt="logo" style={{ height: "40px" }} />
               <div className="logo-text">Bonarius</div>
+              </div>
+              
               <div className="title">
                 {view === "home" && "Voorraadbeheer Movano"}
                 {view === "linker" && "Linker Stelling"}
