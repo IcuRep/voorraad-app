@@ -507,6 +507,9 @@ export default function App() {
   const [showSettings, setShowSettings] = useState(false);
   const [showGlobalSearch, setShowGlobalSearch] = useState(false);
   const [latestInviteCode, setLatestInviteCode] = useState("");
+  const [approvedCreators, setApprovedCreators] = useState([]);
+  const [newCreatorEmail, setNewCreatorEmail] = useState("");
+  const [isMainAdmin, setIsMainAdmin] = useState(false);
   const [modal, setModal] = useState(null);
   const [qty, setQty] = useState(1);
   const [toast, setToast] = useState(null);
@@ -908,6 +911,29 @@ const createInviteCode = async () => {
   showToastMsg("Nieuwe uitnodigingscode gemaakt");
 };
 
+const loadApprovedCreators = async () => {
+  const currentEmail = (session?.email || busInfo?.ownerEmail || "").toLowerCase();
+
+  const mainAdminEmail = "m.slootemaker@bonarius.com";
+  const admin = currentEmail === mainAdminEmail;
+
+  setIsMainAdmin(admin);
+
+  if (!admin) {
+    setApprovedCreators([]);
+    return;
+  }
+
+  const { data, error } = await supabase
+    .from("approved_creators")
+    .select("*")
+    .order("email", { ascending: true });
+
+  if (!error) {
+    setApprovedCreators(data || []);
+  }
+};
+
   const logout = async () => {
   localStorage.removeItem("my-session");
   setSession(null);
@@ -1127,7 +1153,7 @@ const createInviteCode = async () => {
             <button className="cart-btn" onClick={() => { refreshData(); setShowCart(true); }}><IconCart/> Lijst{cartCount > 0 && <span className="cart-badge">{cartCount}</span>}</button>
             <div style={{display:'flex',gap:8}}>
               <button onClick={() => setShowGlobalSearch(true)} style={{width:44,height:44,borderRadius:12,border:'none',background:'var(--surface2)',color:'white',display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer'}}><IconSearch/></button>
-              <button onClick={() => { refreshData(); setShowSettings(true); }} style={{width:44,height:44,borderRadius:12,border:'none',background:'var(--surface2)',color:'white',display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer'}}><IconGear/></button>
+              <button onClick={() => { refreshData(); loadApprovedCreators(); setShowSettings(true); }} style={{width:44,height:44,borderRadius:12,border:'none',background:'var(--surface2)',color:'white',display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer'}}><IconGear/></button>
             </div>
           </div>
         </div>
