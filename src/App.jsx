@@ -641,7 +641,7 @@ const saveCart = async (nc) => {
     .eq("bus_code", session.busCode);
 };
 
-  const createBus = async () => {
+const createBus = async () => {
   const name = authName.trim();
   const email = authEmail.trim().toLowerCase();
   const busName = authBusName.trim();
@@ -669,6 +669,11 @@ const saveCart = async (nc) => {
   }
 
   const { data: creatorRow, error: creatorError } = await supabase
+    .from("approved_creators")
+    .select("email, active, single_use, used_at")
+    .eq("email", email)
+    .eq("active", true)
+    .maybeSingle();
 
   if (creatorError) {
     setAuthError("Controle van toegestane e-mail mislukt");
@@ -676,6 +681,16 @@ const saveCart = async (nc) => {
   }
 
   const isAllowed = !!adminRow || !!creatorRow;
+
+  if (!isAllowed) {
+    setAuthError("Dit e-mailadres is niet gemachtigd om een nieuwe bus aan te maken");
+    return;
+  }
+
+  if (creatorRow?.single_use && creatorRow?.used_at) {
+    setAuthError("Dit e-mailadres is al gebruikt om een bus aan te maken");
+    return;
+  }
 
   const userId = genId();
   const code = genBusCode();
@@ -694,16 +709,15 @@ const saveCart = async (nc) => {
     return;
   }
 
-  // 🔒 markeer e-mail als gebruikt (indien single_use)
-if (creatorRow?.single_use) {
-  await supabase
-    .from("approved_creators")
-    .update({
-      used_at: new Date().toISOString(),
-      used_by_bus_code: code,
-    })
-    .eq("email", email);
-}
+  if (creatorRow?.single_use) {
+    await supabase
+      .from("approved_creators")
+      .update({
+        used_at: new Date().toISOString(),
+        used_by_bus_code: code,
+      })
+      .eq("email", email);
+  }
 
   const { error: memberInsertError } = await supabase
     .from("bus_members")
@@ -956,11 +970,18 @@ const addApprovedCreator = async () => {
       {
         email,
         active: true,
+        single_use: true,
+        used_at: null,
+        used_by_bus_code: null,
       },
       { onConflict: "email" }
     );
 
-  showToastMsg("Toevoegen mislukt");
+  if (error) {
+    console.error("approved_creators add error:", error);
+    showToastMsg(`Toevoegen mislukt: ${error.message}`);
+    return;
+  }
 
   setNewCreatorEmail("");
   showToastMsg("Monteur toegevoegd");
