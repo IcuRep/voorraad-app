@@ -691,7 +691,7 @@ export default function App() {
                 </button>
               )}
               <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-              <img src="/logo.png" alt="logo" style={{ height: "40px" }} />
+              <img src="/logo.png" alt="logo" style={{ height: "28px", objectFit: "contain" }} />
               <div className="logo-text">Bonarius</div>
               </div>
 
