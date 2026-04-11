@@ -1016,7 +1016,49 @@ const createInviteCode = async () => {
     Alleen goedgekeurde e-mailadressen mogen een nieuwe bus aanmaken
   </div>
 </>}
-      {authScreen === "join" && <><div className="auth-title">Deelnemen</div>{authError && <div className="auth-error">{authError}</div>}<input className="auth-input" placeholder="Jouw naam" value={authName} onChange={e => { setAuthName(e.target.value); setAuthError(""); }} /><input
+   {authScreen === "join" && (
+  <>
+    <div className="auth-title">Deelnemen</div>
+
+    {authError && <div className="auth-error">{authError}</div>}
+
+    <input
+      className="auth-input"
+      placeholder="Jouw naam"
+      value={authName}
+      onChange={e => {
+        setAuthName(e.target.value);
+        setAuthError("");
+      }}
+    />
+
+    <input
+      className="auth-input"
+      placeholder="Uitnodigingscode (bijv. INV7X2K)"
+      value={authCode}
+      onChange={e => {
+        setAuthCode(e.target.value.toUpperCase());
+        setAuthError("");
+      }}
+      style={{ fontFamily: "Space Mono, monospace", letterSpacing: 2 }}
+    />
+
+    <button className="auth-btn auth-btn-blue" onClick={joinBus}>
+      Deelnemen
+    </button>
+
+    <button
+      className="auth-btn auth-btn-secondary"
+      onClick={() => setAuthScreen("welcome")}
+    >
+      Terug
+    </button>
+
+    <div className="auth-sub">
+      Vraag de uitnodigingscode aan je monteur
+    </div>
+  </>
+)}
   className="auth-input"
   placeholder="Uitnodigingscode (bijv. INV7X2K)"
   value={authCode}
