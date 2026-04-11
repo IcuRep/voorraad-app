@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import { supabase } from "./supabase";
 
 // ─── HELPERS ────────────────────────────────────────────────────────────
 const genId = () => Math.random().toString(36).substring(2,8);
@@ -482,6 +483,7 @@ export default function App() {
   const [busInfo, setBusInfo] = useState(null);
   const [authScreen, setAuthScreen] = useState("welcome");
   const [authName, setAuthName] = useState("");
+  const [authEmail, setAuthEmail] = useState("");
   const [authBusName, setAuthBusName] = useState("");
   const [authCode, setAuthCode] = useState("");
   const [authError, setAuthError] = useState("");
@@ -539,16 +541,79 @@ export default function App() {
   const saveCart = async (nc) => { setCart(nc); if (session) await sSet("orders_" + session.busCode, nc, true); };
 
   const createBus = async () => {
-    if (!authName.trim() || !authBusName.trim()) { setAuthError("Vul alle velden in"); return; }
-    const userId = genId(), code = genBusCode();
-    const bus = { name: authBusName.trim(), code, monteurId: userId, members: [{ id: userId, name: authName.trim(), role: "monteur" }] };
-    const r1 = await sSet("bus_" + code, bus, true);
-    const r2 = await sSet("orders_" + code, [], true);
-    if (r1 !== true || r2 !== true) { setAuthError("Opslaan mislukt: " + (r1 !== true ? r1 : r2)); return; }
-    const sess = { userId, name: authName.trim(), busCode: code, role: "monteur" };
-    await sSet("my-session", sess, false);
-    setSession(sess); setBusInfo(bus); setCart([]);
+  const name = authName.trim();
+  const email = authEmail.trim().toLowerCase();
+  const busName = authBusName.trim();
+
+  if (!name || !email || !busName) {
+    setAuthError("Vul alle velden in");
+    return;
+  }
+
+  const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  if (!emailOk) {
+    setAuthError("Vul een geldig e-mailadres in");
+    return;
+  }
+
+  const { data: adminRow, error: adminError } = await supabase
+    .from("admin_users")
+    .select("email, role")
+    .eq("email", email)
+    .maybeSingle();
+
+  if (adminError) {
+    setAuthError("Controle van beheerder mislukt");
+    return;
+  }
+
+  const { data: creatorRow, error: creatorError } = await supabase
+    .from("approved_creators")
+    .select("email, active")
+    .eq("email", email)
+    .eq("active", true)
+    .maybeSingle();
+
+  if (creatorError) {
+    setAuthError("Controle van toegestane e-mail mislukt");
+    return;
+  }
+
+  const isAllowed = !!adminRow || !!creatorRow;
+
+  if (!isAllowed) {
+    setAuthError("Dit e-mailadres is niet gemachtigd om een nieuwe bus aan te maken");
+    return;
+  }
+
+  const userId = genId();
+  const code = genBusCode();
+
+  const bus = {
+    name: busName,
+    code,
+    ownerEmail: email,
+    monteurId: userId,
+    members: [
+      { id: userId, name, role: "monteur" }
+    ]
   };
+
+  const r1 = await sSet("bus_" + code, bus, true);
+  const r2 = await sSet("orders_" + code, [], true);
+
+  if (r1 !== true || r2 !== true) {
+    setAuthError("Opslaan mislukt: " + (r1 !== true ? r1 : r2));
+    return;
+  }
+
+  const sess = { userId, name, email, busCode: code, role: "monteur" };
+  await sSet("my-session", sess, false);
+
+  setSession(sess);
+  setBusInfo(bus);
+  setCart([]);
+};
 
   const joinBus = async () => {
     if (!authName.trim() || !authCode.trim()) { setAuthError("Vul alle velden in"); return; }
@@ -627,7 +692,53 @@ export default function App() {
     <><style>{CSS}</style><div className="auth-wrap"><div className="auth-card">
       <div className="auth-logo"><img src="/logo.png" alt="logo" style={{height:'28px',objectFit:'contain',marginRight:8,verticalAlign:'middle'}} />Bonarius</div>
       {authScreen === "welcome" && <><div className="auth-title">Voorraadbeheer</div><div style={{textAlign:'center',color:'var(--text2)',fontSize:14,marginBottom:24}}>Beheer de voorraad in je bedrijfsbus samen met je team</div><button className="auth-btn auth-btn-primary" onClick={() => { setAuthScreen("create"); setAuthError(""); }}>🚐 Nieuwe bus aanmaken</button><div className="auth-divider">of</div><button className="auth-btn auth-btn-blue" onClick={() => { setAuthScreen("join"); setAuthError(""); }}>🔑 Deelnemen aan een bus</button></>}
-      {authScreen === "create" && <><div className="auth-title">Bus aanmaken</div>{authError && <div className="auth-error">{authError}</div>}<input className="auth-input" placeholder="Jouw naam" value={authName} onChange={e => { setAuthName(e.target.value); setAuthError(""); }} /><input className="auth-input" placeholder="Naam van de bus (bijv. Movano Marchel)" value={authBusName} onChange={e => { setAuthBusName(e.target.value); setAuthError(""); }} /><button className="auth-btn auth-btn-primary" onClick={createBus}>Bus aanmaken</button><button className="auth-btn auth-btn-secondary" onClick={() => setAuthScreen("welcome")}>Terug</button><div className="auth-sub">Je ontvangt een buscode om te delen met je hulpmonteur</div></>}
+      {authScreen === "create" && <>
+  <div className="auth-title">Bus aanmaken</div>
+
+  {authError && <div className="auth-error">{authError}</div>}
+
+  <input
+    className="auth-input"
+    placeholder="Jouw naam"
+    value={authName}
+    onChange={e => {
+      setAuthName(e.target.value);
+      setAuthError("");
+    }}
+  />
+
+  <input
+    className="auth-input"
+    placeholder="Jouw e-mailadres"
+    value={authEmail}
+    onChange={e => {
+      setAuthEmail(e.target.value);
+      setAuthError("");
+    }}
+  />
+
+  <input
+    className="auth-input"
+    placeholder="Naam van de bus (bijv. Movano Marchel)"
+    value={authBusName}
+    onChange={e => {
+      setAuthBusName(e.target.value);
+      setAuthError("");
+    }}
+  />
+
+  <button className="auth-btn auth-btn-primary" onClick={createBus}>
+    Bus aanmaken
+  </button>
+
+  <button className="auth-btn auth-btn-secondary" onClick={() => setAuthScreen("welcome")}>
+    Terug
+  </button>
+
+  <div className="auth-sub">
+    Alleen goedgekeurde e-mailadressen mogen een nieuwe bus aanmaken
+  </div>
+</>}
       {authScreen === "join" && <><div className="auth-title">Deelnemen</div>{authError && <div className="auth-error">{authError}</div>}<input className="auth-input" placeholder="Jouw naam" value={authName} onChange={e => { setAuthName(e.target.value); setAuthError(""); }} /><input className="auth-input" placeholder="Buscode (bijv. BUS7X2K)" value={authCode} onChange={e => { setAuthCode(e.target.value.toUpperCase()); setAuthError(""); }} style={{fontFamily:'Space Mono, monospace',letterSpacing:2}} /><button className="auth-btn auth-btn-blue" onClick={joinBus}>Deelnemen</button><button className="auth-btn auth-btn-secondary" onClick={() => setAuthScreen("welcome")}>Terug</button><div className="auth-sub">Vraag de buscode aan je monteur</div></>}
     </div></div></>
   );
