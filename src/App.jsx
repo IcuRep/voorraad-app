@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { supabase } from "./supabase";
 
 // ─── HELPERS ────────────────────────────────────────────────────────────
 const genId = () => Math.random().toString(36).substring(2,8);
@@ -643,7 +642,7 @@ export default function App() {
   const logout = async () => {
     try { await window.storage.delete("my-session", false); } catch {}
     setSession(null); setBusInfo(null); setCart([]); setAuthScreen("welcome");
-    setAuthName(""); setAuthCode(""); setAuthBusName(""); setAuthError("");
+    setAuthName(""); setAuthEmail(""); setAuthCode(""); setAuthBusName(""); setAuthError("");
     setView("home"); setSide(null); setDrawer(null);
   };
 
