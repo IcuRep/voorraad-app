@@ -928,26 +928,17 @@ const createInviteCode = async () => {
 
 
   const loadApprovedCreators = async () => {
-  const currentEmail = (session?.email || busInfo?.ownerEmail || "").toLowerCase();
-
-  const mainAdminEmail = "m.slootemaker@bonarius.com";
-  const admin = currentEmail === mainAdminEmail;
-
-  setIsMainAdmin(admin);
-
-  if (!admin) {
-    setApprovedCreators([]);
-    return;
-  }
-
   const { data, error } = await supabase
     .from("approved_creators")
     .select("*")
-    .order("email", { ascending: true });
+    .order("created_at", { ascending: false });
 
-  if (!error) {
-    setApprovedCreators(data || []);
+  if (error) {
+    console.error("Load error:", error);
+    return;
   }
+
+  setApprovedCreators(data || []);
 };
 
 const addApprovedCreator = async () => {
@@ -988,18 +979,19 @@ const addApprovedCreator = async () => {
   await loadApprovedCreators();
 };
 
-const removeApprovedCreator = async (email) => {
+const reactivateApprovedCreator = async (email) => {
   const { error } = await supabase
     .from("approved_creators")
-    .delete()
+    .update({ active: true })
     .eq("email", email);
 
   if (error) {
-    showToastMsg("Verwijderen mislukt");
+    console.error("Reactivate error:", error);
+    showToastMsg("Activeren mislukt");
     return;
   }
 
-  showToastMsg("Monteur verwijderd");
+  showToastMsg("Monteur opnieuw geactiveerd");
   await loadApprovedCreators();
 };
 
@@ -1229,28 +1221,43 @@ const removeApprovedCreator = async (email) => {
         </div>
       ) : (
         approvedCreators.map(row => (
-          <div key={row.email} className="member-item">
+          <div
+  key={row.email}
+  className="member-item"
+  style={{ opacity: row.active ? 1 : 0.5 }}
+>
             <div>
               <div className="member-name">{row.email}</div>
               <div className="member-role">
-                {row.email === "m.slootemaker@bonarius.com"
-                  ? "hoofdadmin"
-                  : row.used_at
-                  ? "al gebruikt"
-                  : row.active
-                  ? "toegestaan"
-                  : "inactief"}
-              </div>
+  {row.email === "m.slootemaker@bonarius.com"
+    ? "hoofdadmin"
+    : !row.active
+    ? "inactief"
+    : row.used_at
+    ? "al gebruikt"
+    : "toegestaan"}
+</div>
             </div>
 
             {row.email !== "m.slootemaker@bonarius.com" && (
-              <button
-                className="member-remove"
-                onClick={() => removeApprovedCreator(row.email)}
-              >
-                Verwijderen
-              </button>
-            )}
+  <>
+    {row.active ? (
+      <button
+        className="member-remove"
+        onClick={() => removeApprovedCreator(row.email)}
+      >
+        Deactiveren
+      </button>
+    ) : (
+      <button
+        className="member-remove"
+        onClick={() => reactivateApprovedCreator(row.email)}
+      >
+        Activeren
+      </button>
+    )}
+  </>
+)}
           </div>
         ))
       )}
