@@ -460,8 +460,8 @@ const VanSVG = ({ onClickLeft, onClickRight }) => (
     <circle cx="680" cy="150" r="6" fill="#3b82f6" opacity=".4"/>
     <rect x="450" y="280" width="160" height="8" rx="4" fill="#f97316" opacity=".5"/>
     <text x="530" y="310" textAnchor="middle" fill="#f97316" fontSize="11" fontFamily="Space Mono, monospace" opacity=".7">SCHUIFDEUR</text>
-    <g onClick={onClickLeft} style={{cursor:'pointer'}}><rect x="80" y="60" width="500" height="90" rx="10" fill="#1c2533" stroke="#f97316" strokeWidth="2" strokeDasharray="6 3"/><rect x="80" y="60" width="500" height="90" rx="10" fill="#f97316" opacity=".08"/><text x="330" y="100" textAnchor="middle" fill="#f97316" fontSize="13" fontFamily="DM Sans" fontWeight="700">LINKER STELLING</text><text x="330" y="118" textAnchor="middle" fill="#8896a8" fontSize="11" fontFamily="Space Mono, monospace">12 laden</text></g>
-    <g onClick={onClickRight} style={{cursor:'pointer'}}><rect x="130" y="190" width="300" height="70" rx="10" fill="#1c2533" stroke="#3b82f6" strokeWidth="2" strokeDasharray="6 3"/><rect x="130" y="190" width="300" height="70" rx="10" fill="#3b82f6" opacity=".08"/><text x="280" y="222" textAnchor="middle" fill="#3b82f6" fontSize="13" fontFamily="DM Sans" fontWeight="700">RECHTER STELLING</text><text x="280" y="240" textAnchor="middle" fill="#8896a8" fontSize="11" fontFamily="Space Mono, monospace">7 laden</text></g>
+    <g onClick={onClickLeft} style={{cursor:'pointer'}}><rect x="80" y="60" width="500" height="90" rx="10" fill="#1c2533" stroke="#f97316" strokeWidth="2" strokeDasharray="6 3"/><rect x="80" y="60" width="500" height="90" rx="10" fill="#f97316" opacity=".08"/><text x="330" y="100" textAnchor="middle" fill="#f97316" fontSize="13" fontFamily="DM Sans" fontWeight="700">LINKER STELLING</text><text x="330" y="118" textAnchor="middle" fill="#8896a8" fontSize="11" fontFamily="Space Mono, monospace">12 laden • Prestabo / Profipress / Gas</text></g>
+    <g onClick={onClickRight} style={{cursor:'pointer'}}><rect x="130" y="190" width="300" height="70" rx="10" fill="#1c2533" stroke="#3b82f6" strokeWidth="2" strokeDasharray="6 3"/><rect x="130" y="190" width="300" height="70" rx="10" fill="#3b82f6" opacity=".08"/><text x="280" y="222" textAnchor="middle" fill="#3b82f6" fontSize="13" fontFamily="DM Sans" fontWeight="700">RECHTER STELLING</text><text x="280" y="240" textAnchor="middle" fill="#8896a8" fontSize="11" fontFamily="Space Mono, monospace">7 laden • Knel / Malleabel / Las</text></g>
   </svg>
 );
 
@@ -620,7 +620,7 @@ export default function App() {
 
   if (showSettings) return (
     <><style>{CSS}</style><div className="app">
-      <div className="header"><div className="header-top"><div><button onClick={() => setShowSettings(false)} style={{background:'none',border:'none',color:'white',cursor:'pointer',padding:'4px 0',display:'flex',alignItems:'center',gap:4}}><IconBack/><span style={{fontSize:14}}>Terug</span></button><div className="logo-text">Bonarius</div><div className="title">Instellingen</div></div><div/></div></div>
+      <div className="header"><div className="header-top"><div><button onClick={() => setShowSettings(false)} style={{background:'none',border:'none',color:'white',cursor:'pointer',padding:'4px 0',display:'flex',alignItems:'center',gap:4}}><IconBack/><span style={{fontSize:14}}>Terug</span></button><div style={{display:'flex',alignItems:'center',gap:'10px'}}><img src="/logo.png" alt="logo" style={{height:'28px',objectFit:'contain'}} /><div className="logo-text">Bonarius</div></div><div className="title">Instellingen</div></div><div/></div></div>
       <div style={{padding:16}}>
         <div className="settings-section"><div className="settings-label">Bus</div><div className="settings-value">{busInfo?.name}</div></div>
         <div className="settings-section"><div className="settings-label">Buscode — tik om te kopiëren</div><div className="bus-code-display" onClick={() => { navigator.clipboard?.writeText(busInfo?.code); showToastMsg("Code gekopieerd!"); }}>{busInfo?.code}</div><div style={{fontSize:12,color:'var(--text2)',textAlign:'center'}}>Deel deze code met je hulpmonteur</div></div>
@@ -637,8 +637,8 @@ export default function App() {
         <div className="header-top">
           <div>
             {view !== "home" && <button onClick={goBack} style={{background:'none',border:'none',color:'white',cursor:'pointer',padding:'4px 0',display:'flex',alignItems:'center',gap:4}}><IconBack/><span style={{fontSize:14}}>Terug</span></button>}
-            <div className="logo-text">Bonarius</div>
-            <div className="title">{view === "home" ? (busInfo?.name || "Voorraadbeheer") : view === "linker" ? "Linker Stelling" : view === "rechter" ? "Rechter Stelling" : drawer}</div>
+            <div style={{display:'flex',alignItems:'center',gap:'10px'}}><img src="/logo.png" alt="logo" style={{height:'28px',objectFit:'contain'}} /><div className="logo-text">Bonarius</div></div>
+            <div className="title">{view === "home" ? ("Voorraadbeheer " + (busInfo?.name || "")) : view === "linker" ? "Linker Stelling" : view === "rechter" ? "Rechter Stelling" : drawer}</div>
             <div className="user-badge">{session.name} • {session.role}</div>
           </div>
           <div style={{display:'flex',flexDirection:'column',gap:8,alignItems:'flex-end'}}>
@@ -652,7 +652,7 @@ export default function App() {
         <div className="breadcrumb"><span onClick={goHome} className={view==="home"?"active":""}>Home</span>{(view==="linker"||view==="rechter"||view==="drawer")&&<><span className="sep">›</span><span onClick={() => goSide(side)} className={view!=="drawer"?"active":""}>{side==="linker"?"Linker Stelling":"Rechter Stelling"}</span></>}{view==="drawer"&&<><span className="sep">›</span><span className="active">{drawer}</span></>}</div>
       </div>
 
-      {view === "home" && <div className="van-view"><div className="van-svg-container"><VanSVG onClickLeft={() => goSide("linker")} onClickRight={() => goSide("rechter")} /></div><div className="side-cards"><div className="side-card" onClick={() => goSide("linker")}><div className="icon">🔧</div><div className="label">Linker Stelling</div><div className="sub">12 laden</div></div><div className="side-card" onClick={() => goSide("rechter")}><div className="icon">⚙️</div><div className="label">Rechter Stelling</div><div className="sub">7 laden</div></div></div></div>}
+      {view === "home" && <div className="van-view"><div className="van-svg-container"><VanSVG onClickLeft={() => goSide("linker")} onClickRight={() => goSide("rechter")} /></div><div className="side-cards"><div className="side-card" onClick={() => goSide("linker")}><div className="icon">🔧</div><div className="label">Linker Stelling</div><div className="sub">12 laden • Pers & Gas</div></div><div className="side-card" onClick={() => goSide("rechter")}><div className="icon">⚙️</div><div className="label">Rechter Stelling</div><div className="sub">7 laden • Knel & Las</div></div></div></div>}
 
       {(view === "linker" || view === "rechter") && <div className="drawer-list"><div className="drawer-grid">{Object.entries(data).map(([name, items]) => { const isInfo = items && items._info; const count = Array.isArray(items) ? items.length : 0; const isEmpty = !isInfo && count === 0; return <button key={name} className={`drawer-btn ${isEmpty?'empty':''}`} onClick={() => !isEmpty && goDrawer(name)}><div className="num">{name.replace("Lade ","")}</div><div className="dtxt">{isInfo ? items._info : count > 0 ? `${count} art.` : "Leeg"}</div></button>; })}</div></div>}
 

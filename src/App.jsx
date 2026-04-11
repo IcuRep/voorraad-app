@@ -1,6 +1,12 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 
-// ─── DATA ───────────────────────────────────────────────────────────────
+// ─── HELPERS ────────────────────────────────────────────────────────────
+const genId = () => Math.random().toString(36).substring(2,8);
+const genBusCode = () => "BUS-" + Math.random().toString(36).substring(2,6).toUpperCase();
+const S = window.storage;
+const sGet = async (k,sh) => { try { const r = await S.get(k,sh); return r?JSON.parse(r.value):null; } catch{return null;} };
+const sSet = async (k,v,sh) => { try { await S.set(k,JSON.stringify(v),sh); } catch{} };
+
 const LINKER_LADEN = {
   "Lade 1": [
     { name: "Perssok Viega Prestabo 15x15mm", code: "0556001", qty: 6, img: "https://pimassetsprdst.blob.core.windows.net/assets/apc_JPG300X300/51/98/11855198.jpg" },
@@ -328,281 +334,153 @@ const RECHTER_LADEN = {
 // ─── STYLES ─────────────────────────────────────────────────────────────
 const CSS = `
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,500;0,9..40,700;1,9..40,400&family=Space+Mono:wght@400;700&display=swap');
-
 * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
-
-:root {
-  --bg: #0c1117;
-  --surface: #161d27;
-  --surface2: #1c2533;
-  --accent: #f97316;
-  --accent2: #3b82f6;
-  --text: #e8ecf1;
-  --text2: #8896a8;
-  --border: #2a3545;
-  --success: #22c55e;
-  --danger: #ef4444;
-  --radius: 14px;
-}
-
-body { background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-serif; overflow-x: hidden; }
-
-.app { min-height: 100vh; width: 100%; padding-bottom: 100px; }
-
-/* ── Header ── */
-.header {
-  background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
-  padding: 20px 16px 16px;
-  position: sticky; top: 0; z-index: 50;
-  border-bottom: 1px solid var(--border);
-}
-.header-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
-.logo-text { font-family: 'Space Mono', monospace; font-size: 11px; letter-spacing: 3px; text-transform: uppercase; color: var(--accent); }
-.title { font-size: 18px; font-weight: 700; color: white; }
-
-.cart-btn {
-  position: relative; background: var(--accent); border: none; border-radius: 12px;
-  padding: 10px 16px; color: white; font-weight: 700; font-size: 14px;
-  cursor: pointer; display: flex; align-items: center; gap: 8px;
-  font-family: 'DM Sans', sans-serif; transition: transform .15s;
-}
-.cart-btn:active { transform: scale(0.95); }
-.cart-badge {
-  position: absolute; top: -6px; right: -6px;
-  background: var(--danger); color: white; font-size: 11px; font-weight: 700;
-  width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
-  border: 2px solid var(--bg);
-}
-
-/* ── Breadcrumb ── */
-.breadcrumb {
-  display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--text2);
-  padding: 0 4px;
-}
-.breadcrumb span { cursor: pointer; transition: color .2s; }
-.breadcrumb span:hover { color: var(--accent); }
-.breadcrumb .active { color: var(--text); font-weight: 500; }
-.breadcrumb .sep { color: var(--border); }
-
-/* ── Van Overview ── */
-.van-view { padding: 0; }
-.van-svg-container {
-  background: var(--surface); border-radius: var(--radius); padding: 24px 16px;
-  border: 1px solid var(--border); margin-bottom: 16px;
-}
-.van-svg-container svg { width: 100%; height: auto; display: block; }
-
-.side-cards { display: flex; gap: 12px; }
-.side-card {
-  flex: 1; background: var(--surface); border: 1px solid var(--border);
-  border-radius: var(--radius); padding: 20px 16px; cursor: pointer;
-  transition: all .2s; text-align: center; position: relative; overflow: hidden;
-}
-.side-card:active { transform: scale(0.97); }
-.side-card:hover { border-color: var(--accent); }
-.side-card .icon { font-size: 32px; margin-bottom: 8px; }
-.side-card .label { font-weight: 700; font-size: 15px; margin-bottom: 4px; }
-.side-card .sub { font-size: 12px; color: var(--text2); }
-.side-card::after {
-  content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 3px;
-  background: var(--accent); transform: scaleX(0); transition: transform .3s;
-}
-.side-card:hover::after { transform: scaleX(1); }
-
-/* ── Drawer List ── */
-.drawer-list { padding: 0; }
-.drawer-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
-.drawer-btn {
-  background: var(--surface); border: 1px solid var(--border);
-  border-radius: var(--radius); padding: 16px 8px; cursor: pointer;
-  transition: all .2s; text-align: center; color: var(--text);
-  font-family: 'DM Sans', sans-serif;
-}
-.drawer-btn:active { transform: scale(0.95); }
-.drawer-btn:hover { border-color: var(--accent); background: var(--surface2); }
-.drawer-btn .num { font-family: 'Space Mono', monospace; font-size: 22px; font-weight: 700; color: var(--accent); }
-.drawer-btn .dtxt { font-size: 11px; color: var(--text2); margin-top: 4px; }
-.drawer-btn.empty { opacity: .35; }
-.stelling-img { width: 100%; border-radius: var(--radius); margin-bottom: 16px; border: 1px solid var(--border); }
-
-/* ── Article List ── */
-.article-list { padding: 0; }
-.article-item {
-  display: flex; align-items: center; gap: 12px;
-  background: var(--surface); border: 1px solid var(--border);
-  border-radius: var(--radius); padding: 12px; margin-bottom: 8px;
-  cursor: pointer; transition: all .2s; position: relative; overflow: hidden;
-}
-.article-item:active { transform: scale(0.98); background: var(--surface2); }
-.article-item img { width: 48px; height: 48px; border-radius: 8px; object-fit: cover; background: #fff; flex-shrink: 0; }
-.article-info { flex: 1; min-width: 0; }
-.article-name { font-size: 13px; font-weight: 500; line-height: 1.3; }
-.article-code { font-family: 'Space Mono', monospace; font-size: 11px; color: var(--text2); margin-top: 2px; }
-.article-qty-badge {
-  background: var(--surface2); border: 1px solid var(--border);
-  border-radius: 8px; padding: 4px 10px; font-size: 11px; color: var(--text2);
-  white-space: nowrap; flex-shrink: 0;
-}
-.add-icon {
-  width: 36px; height: 36px; border-radius: 50%; background: var(--accent);
-  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
-  font-size: 20px; color: white; font-weight: 700; transition: transform .15s;
-}
-.article-item:active .add-icon { transform: scale(1.15); }
-
-/* ── Qty Modal ── */
-.modal-overlay {
-  position: fixed; inset: 0; background: rgba(0,0,0,.7); z-index: 100;
-  display: flex; align-items: flex-end; justify-content: center;
-  animation: fadeIn .2s;
-}
-@keyframes fadeIn { from { opacity: 0; } }
-.modal-sheet {
-  background: var(--surface); border-radius: 20px 20px 0 0; padding: 24px 20px 40px;
-  width: 100%; animation: slideUp .3s;
-}
-@keyframes slideUp { from { transform: translateY(100%); } }
-.modal-handle { width: 40px; height: 4px; background: var(--border); border-radius: 2px; margin: 0 auto 20px; }
-.modal-title { font-size: 16px; font-weight: 700; margin-bottom: 4px; }
-.modal-sub { font-size: 13px; color: var(--text2); margin-bottom: 20px; }
-.qty-controls {
-  display: flex; align-items: center; justify-content: center; gap: 20px; margin-bottom: 24px;
-}
-.qty-btn {
-  width: 48px; height: 48px; border-radius: 50%; border: 2px solid var(--border);
-  background: var(--surface2); color: var(--text); font-size: 24px; font-weight: 700;
-  cursor: pointer; display: flex; align-items: center; justify-content: center;
-  font-family: 'DM Sans', sans-serif; transition: all .15s;
-}
-.qty-btn:active { transform: scale(0.9); background: var(--accent); border-color: var(--accent); }
-.qty-display {
-  font-family: 'Space Mono', monospace; font-size: 36px; font-weight: 700;
-  min-width: 60px; text-align: center; color: var(--accent);
-}
-.modal-actions { display: flex; gap: 10px; }
-.modal-actions button {
-  flex: 1; padding: 14px; border-radius: 12px; border: none; font-size: 15px;
-  font-weight: 700; cursor: pointer; font-family: 'DM Sans', sans-serif; transition: transform .15s;
-}
-.modal-actions button:active { transform: scale(0.97); }
-.btn-cancel { background: var(--surface2); color: var(--text); border: 1px solid var(--border) !important; }
-.btn-add { background: var(--accent); color: white; }
-
-/* ── Cart Panel ── */
-.cart-overlay {
-  position: fixed; inset: 0; background: rgba(0,0,0,.7); z-index: 100;
-  display: flex; align-items: flex-end; justify-content: center;
-  animation: fadeIn .2s;
-}
-.cart-sheet {
-  background: var(--surface); border-radius: 20px 20px 0 0; padding: 24px 20px 40px;
-  width: 100%; max-height: 85vh; display: flex; flex-direction: column;
-  animation: slideUp .3s;
-}
-.cart-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
-.cart-title { font-size: 18px; font-weight: 700; }
-.cart-close { background: none; border: none; color: var(--text2); font-size: 28px; cursor: pointer; padding: 0 4px; }
-.cart-items { flex: 1; overflow-y: auto; margin-bottom: 16px; }
-.cart-item {
-  display: flex; align-items: center; gap: 12px;
-  padding: 12px 0; border-bottom: 1px solid var(--border);
-}
-.cart-item-info { flex: 1; min-width: 0; }
-.cart-item-name { font-size: 13px; font-weight: 500; }
-.cart-item-code { font-size: 11px; color: var(--text2); font-family: 'Space Mono', monospace; }
-.cart-item-qty { font-family: 'Space Mono', monospace; font-size: 16px; font-weight: 700; color: var(--accent); min-width: 30px; text-align: center; }
-.cart-item-del { background: none; border: none; color: var(--danger); font-size: 18px; cursor: pointer; padding: 8px; }
-.cart-empty { text-align: center; color: var(--text2); padding: 40px 0; font-size: 14px; }
-.cart-actions { display: flex; flex-direction: column; gap: 8px; }
-.cart-actions button {
-  padding: 14px; border-radius: 12px; border: none; font-size: 15px;
-  font-weight: 700; cursor: pointer; font-family: 'DM Sans', sans-serif; transition: transform .15s;
-}
-.cart-actions button:active { transform: scale(0.97); }
-.btn-email { background: var(--success); color: white; }
-.btn-clear { background: var(--surface2); color: var(--text2); border: 1px solid var(--border) !important; }
-
-/* ── Toast ── */
-.toast {
-  position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
-  background: var(--success); color: white; padding: 12px 24px; border-radius: 12px;
-  font-weight: 700; font-size: 14px; z-index: 200; animation: toastIn .3s;
-  box-shadow: 0 8px 24px rgba(0,0,0,.4);
-}
-@keyframes toastIn { from { opacity: 0; transform: translateX(-50%) translateY(20px); } }
-
-/* ── Search ── */
-.search-bar {
-  background: var(--surface2); border: 1px solid var(--border); border-radius: 12px;
-  padding: 10px 14px; display: flex; align-items: center; gap: 8px; margin-bottom: 12px;
-}
-.search-bar input {
-  background: none; border: none; color: var(--text); font-size: 14px;
-  width: 100%; outline: none; font-family: 'DM Sans', sans-serif;
-}
-.search-bar input::placeholder { color: var(--text2); }
-.search-icon { color: var(--text2); font-size: 16px; flex-shrink: 0; }
+:root { --bg:#0c1117; --surface:#161d27; --surface2:#1c2533; --accent:#f97316; --accent2:#3b82f6; --text:#e8ecf1; --text2:#8896a8; --border:#2a3545; --success:#22c55e; --danger:#ef4444; --radius:14px; }
+body { background:var(--bg); color:var(--text); font-family:'DM Sans',sans-serif; overflow-x:hidden; }
+.app { min-height:100vh; width:100%; padding-bottom:100px; }
+.auth-wrap { min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:24px; }
+.auth-card { background:var(--surface); border:1px solid var(--border); border-radius:20px; padding:32px 24px; width:100%; max-width:400px; }
+.auth-logo { font-family:'Space Mono',monospace; font-size:12px; letter-spacing:3px; color:var(--accent); text-transform:uppercase; text-align:center; margin-bottom:4px; }
+.auth-title { font-size:22px; font-weight:700; text-align:center; margin-bottom:24px; }
+.auth-input { width:100%; padding:14px 16px; border-radius:12px; border:1px solid var(--border); background:var(--surface2); color:var(--text); font-size:15px; font-family:'DM Sans',sans-serif; margin-bottom:12px; outline:none; }
+.auth-input:focus { border-color:var(--accent); }
+.auth-input::placeholder { color:var(--text2); }
+.auth-btn { width:100%; padding:14px; border-radius:12px; border:none; font-size:15px; font-weight:700; cursor:pointer; font-family:'DM Sans',sans-serif; transition:transform .15s; margin-bottom:8px; }
+.auth-btn:active { transform:scale(0.97); }
+.auth-btn-primary { background:var(--accent); color:white; }
+.auth-btn-secondary { background:var(--surface2); color:var(--text); border:1px solid var(--border) !important; }
+.auth-btn-blue { background:var(--accent2); color:white; }
+.auth-divider { text-align:center; color:var(--text2); font-size:13px; margin:16px 0; }
+.auth-error { background:rgba(239,68,68,.15); color:var(--danger); padding:10px 14px; border-radius:10px; font-size:13px; margin-bottom:12px; }
+.auth-sub { text-align:center; color:var(--text2); font-size:13px; margin-top:12px; }
+.settings-section { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:16px; margin-bottom:12px; }
+.settings-label { font-size:11px; color:var(--text2); text-transform:uppercase; letter-spacing:1px; margin-bottom:8px; font-family:'Space Mono',monospace; }
+.settings-value { font-size:16px; font-weight:500; }
+.bus-code-display { font-family:'Space Mono',monospace; font-size:24px; font-weight:700; color:var(--accent); letter-spacing:3px; text-align:center; padding:16px; background:var(--surface2); border-radius:12px; margin:8px 0; cursor:pointer; }
+.member-item { display:flex; align-items:center; justify-content:space-between; padding:12px 0; border-bottom:1px solid var(--border); }
+.member-item:last-child { border:none; }
+.member-name { font-weight:500; }
+.member-role { font-size:12px; color:var(--text2); font-family:'Space Mono',monospace; }
+.member-remove { background:none; border:1px solid var(--danger); color:var(--danger); padding:6px 12px; border-radius:8px; font-size:12px; cursor:pointer; font-family:'DM Sans',sans-serif; }
+.header { background:linear-gradient(135deg,#0f2027,#203a43,#2c5364); padding:20px 16px 16px; position:sticky; top:0; z-index:50; border-bottom:1px solid var(--border); }
+.header-top { display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
+.logo-text { font-family:'Space Mono',monospace; font-size:11px; letter-spacing:3px; text-transform:uppercase; color:var(--accent); }
+.title { font-size:18px; font-weight:700; color:white; }
+.user-badge { font-size:11px; color:var(--accent); font-family:'Space Mono',monospace; margin-top:2px; }
+.cart-btn { position:relative; background:var(--accent); border:none; border-radius:12px; padding:10px 16px; color:white; font-weight:700; font-size:14px; cursor:pointer; display:flex; align-items:center; gap:8px; font-family:'DM Sans',sans-serif; }
+.cart-btn:active { transform:scale(0.95); }
+.cart-badge { position:absolute; top:-6px; right:-6px; background:var(--danger); color:white; font-size:11px; font-weight:700; width:22px; height:22px; border-radius:50%; display:flex; align-items:center; justify-content:center; border:2px solid var(--bg); }
+.breadcrumb { display:flex; align-items:center; gap:6px; font-size:13px; color:var(--text2); padding:0 4px; }
+.breadcrumb span { cursor:pointer; }
+.breadcrumb .active { color:var(--text); font-weight:500; }
+.breadcrumb .sep { color:var(--border); }
+.van-view { padding:0; }
+.van-svg-container { background:var(--surface); border-radius:var(--radius); padding:24px 16px; border:1px solid var(--border); margin-bottom:16px; }
+.van-svg-container svg { width:100%; height:auto; display:block; }
+.side-cards { display:flex; gap:12px; }
+.side-card { flex:1; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:20px 16px; cursor:pointer; transition:all .2s; text-align:center; position:relative; overflow:hidden; }
+.side-card:active { transform:scale(0.97); }
+.side-card:hover { border-color:var(--accent); }
+.side-card .icon { font-size:32px; margin-bottom:8px; }
+.side-card .label { font-weight:700; font-size:15px; margin-bottom:4px; }
+.side-card .sub { font-size:12px; color:var(--text2); }
+.side-card::after { content:''; position:absolute; bottom:0; left:0; right:0; height:3px; background:var(--accent); transform:scaleX(0); transition:transform .3s; }
+.side-card:hover::after { transform:scaleX(1); }
+.drawer-list { padding:0; }
+.drawer-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
+.drawer-btn { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:16px 8px; cursor:pointer; transition:all .2s; text-align:center; color:var(--text); font-family:'DM Sans',sans-serif; }
+.drawer-btn:active { transform:scale(0.95); }
+.drawer-btn:hover { border-color:var(--accent); background:var(--surface2); }
+.drawer-btn .num { font-family:'Space Mono',monospace; font-size:22px; font-weight:700; color:var(--accent); }
+.drawer-btn .dtxt { font-size:11px; color:var(--text2); margin-top:4px; }
+.drawer-btn.empty { opacity:.35; }
+.article-list { padding:0; }
+.article-item { display:flex; align-items:center; gap:12px; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:12px; margin-bottom:8px; cursor:pointer; transition:all .2s; }
+.article-item:active { transform:scale(0.98); background:var(--surface2); }
+.article-item img { width:48px; height:48px; border-radius:8px; object-fit:cover; background:#fff; flex-shrink:0; }
+.article-info { flex:1; min-width:0; }
+.article-name { font-size:13px; font-weight:500; line-height:1.3; }
+.article-code { font-family:'Space Mono',monospace; font-size:11px; color:var(--text2); margin-top:2px; }
+.article-qty-badge { background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:4px 10px; font-size:11px; color:var(--text2); white-space:nowrap; flex-shrink:0; }
+.add-icon { width:36px; height:36px; border-radius:50%; background:var(--accent); display:flex; align-items:center; justify-content:center; flex-shrink:0; font-size:20px; color:white; font-weight:700; }
+.modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,.7); z-index:100; display:flex; align-items:flex-end; justify-content:center; animation:fadeIn .2s; }
+@keyframes fadeIn { from{opacity:0;} }
+.modal-sheet { background:var(--surface); border-radius:20px 20px 0 0; padding:24px 20px 40px; width:100%; animation:slideUp .3s; }
+@keyframes slideUp { from{transform:translateY(100%);} }
+.modal-handle { width:40px; height:4px; background:var(--border); border-radius:2px; margin:0 auto 20px; }
+.modal-title { font-size:16px; font-weight:700; margin-bottom:4px; }
+.modal-sub { font-size:13px; color:var(--text2); margin-bottom:20px; }
+.qty-controls { display:flex; align-items:center; justify-content:center; gap:20px; margin-bottom:24px; }
+.qty-btn { width:48px; height:48px; border-radius:50%; border:2px solid var(--border); background:var(--surface2); color:var(--text); font-size:24px; font-weight:700; cursor:pointer; display:flex; align-items:center; justify-content:center; font-family:'DM Sans',sans-serif; }
+.qty-btn:active { transform:scale(0.9); background:var(--accent); border-color:var(--accent); }
+.qty-display { font-family:'Space Mono',monospace; font-size:36px; font-weight:700; min-width:60px; text-align:center; color:var(--accent); }
+.modal-actions { display:flex; gap:10px; }
+.modal-actions button { flex:1; padding:14px; border-radius:12px; border:none; font-size:15px; font-weight:700; cursor:pointer; font-family:'DM Sans',sans-serif; }
+.modal-actions button:active { transform:scale(0.97); }
+.btn-cancel { background:var(--surface2); color:var(--text); border:1px solid var(--border) !important; }
+.btn-add { background:var(--accent); color:white; }
+.cart-overlay { position:fixed; inset:0; background:rgba(0,0,0,.7); z-index:100; display:flex; align-items:flex-end; justify-content:center; animation:fadeIn .2s; }
+.cart-sheet { background:var(--surface); border-radius:20px 20px 0 0; padding:24px 20px 40px; width:100%; max-height:85vh; display:flex; flex-direction:column; animation:slideUp .3s; }
+.cart-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; }
+.cart-title { font-size:18px; font-weight:700; }
+.cart-close { background:none; border:none; color:var(--text2); font-size:28px; cursor:pointer; padding:0 4px; }
+.cart-items { flex:1; overflow-y:auto; margin-bottom:16px; }
+.cart-item { display:flex; align-items:center; gap:12px; padding:12px 0; border-bottom:1px solid var(--border); }
+.cart-item-info { flex:1; min-width:0; }
+.cart-item-name { font-size:13px; font-weight:500; }
+.cart-item-code { font-size:11px; color:var(--text2); font-family:'Space Mono',monospace; }
+.cart-item-qty { font-family:'Space Mono',monospace; font-size:16px; font-weight:700; color:var(--accent); min-width:30px; text-align:center; }
+.cart-item-del { background:none; border:none; color:var(--danger); font-size:18px; cursor:pointer; padding:8px; }
+.cart-item-by { font-size:10px; color:var(--text2); }
+.cart-empty { text-align:center; color:var(--text2); padding:40px 0; font-size:14px; }
+.cart-actions { display:flex; flex-direction:column; gap:8px; }
+.cart-actions button { padding:14px; border-radius:12px; border:none; font-size:15px; font-weight:700; cursor:pointer; font-family:'DM Sans',sans-serif; }
+.cart-actions button:active { transform:scale(0.97); }
+.btn-email { background:var(--success); color:white; }
+.btn-clear { background:var(--surface2); color:var(--text2); border:1px solid var(--border) !important; }
+.toast { position:fixed; bottom:30px; left:50%; transform:translateX(-50%); background:var(--success); color:white; padding:12px 24px; border-radius:12px; font-weight:700; font-size:14px; z-index:200; animation:toastIn .3s; box-shadow:0 8px 24px rgba(0,0,0,.4); }
+@keyframes toastIn { from{opacity:0;transform:translateX(-50%) translateY(20px);} }
+.search-bar { background:var(--surface2); border:1px solid var(--border); border-radius:12px; padding:10px 14px; display:flex; align-items:center; gap:8px; margin-bottom:12px; }
+.search-bar input { background:none; border:none; color:var(--text); font-size:14px; width:100%; outline:none; font-family:'DM Sans',sans-serif; }
+.search-bar input::placeholder { color:var(--text2); }
+.search-icon { color:var(--text2); font-size:16px; flex-shrink:0; }
 `;
 
-// ─── ICONS (inline SVG) ─────────────────────────────────────────────────
-const IconCart = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-    <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/>
-    <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
-  </svg>
-);
-const IconBack = () => (
-  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M15 18l-6-6 6-6"/>
-  </svg>
-);
-const IconSearch = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-    <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
-  </svg>
-);
+// ─── ICONS ──────────────────────────────────────────────────────────────
+const IconCart = () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>;
+const IconBack = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6"/></svg>;
+const IconSearch = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>;
+const IconGear = () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>;
 
-// ─── VAN SVG ────────────────────────────────────────────────────────────
 const VanSVG = ({ onClickLeft, onClickRight }) => (
   <svg viewBox="0 0 800 350" xmlns="http://www.w3.org/2000/svg">
-    {/* Van body */}
     <rect x="40" y="30" width="720" height="290" rx="16" fill="#1c2533" stroke="#2a3545" strokeWidth="2"/>
-    {/* Cabin */}
     <rect x="620" y="60" width="120" height="230" rx="12" fill="#161d27" stroke="#2a3545" strokeWidth="1.5"/>
-    {/* Steering wheel */}
     <circle cx="680" cy="150" r="28" fill="none" stroke="#3b82f6" strokeWidth="2" opacity=".6"/>
     <circle cx="680" cy="150" r="6" fill="#3b82f6" opacity=".4"/>
-    <line x1="680" y1="122" x2="680" y2="178" stroke="#3b82f6" strokeWidth="1.5" opacity=".3"/>
-    <line x1="652" y1="150" x2="708" y2="150" stroke="#3b82f6" strokeWidth="1.5" opacity=".3"/>
-    {/* Door indicator - between rechter stelling and cabin */}
     <rect x="450" y="280" width="160" height="8" rx="4" fill="#f97316" opacity=".5"/>
     <text x="530" y="310" textAnchor="middle" fill="#f97316" fontSize="11" fontFamily="Space Mono, monospace" opacity=".7">SCHUIFDEUR</text>
-    {/* Left shelf (top) - clickable */}
-    <g onClick={onClickLeft} style={{cursor:'pointer'}}>
-      <rect x="80" y="60" width="500" height="90" rx="10" fill="#1c2533" stroke="#f97316" strokeWidth="2" strokeDasharray="6 3"/>
-      <rect x="80" y="60" width="500" height="90" rx="10" fill="#f97316" opacity=".08"/>
-      <text x="330" y="100" textAnchor="middle" fill="#f97316" fontSize="13" fontFamily="DM Sans, sans-serif" fontWeight="700">LINKER STELLING</text>
-      <text x="330" y="118" textAnchor="middle" fill="#8896a8" fontSize="11" fontFamily="Space Mono, monospace">12 laden • Prestabo / Profipress / Gas</text>
-      <text x="170" y="138" textAnchor="middle" fill="#3b4b5e" fontSize="10" fontFamily="Space Mono, monospace">1267mm</text>
-      <text x="470" y="138" textAnchor="middle" fill="#3b4b5e" fontSize="10" fontFamily="Space Mono, monospace">967mm</text>
-    </g>
-    {/* Right shelf (bottom) - clickable */}
-    <g onClick={onClickRight} style={{cursor:'pointer'}}>
-      <rect x="130" y="190" width="300" height="70" rx="10" fill="#1c2533" stroke="#3b82f6" strokeWidth="2" strokeDasharray="6 3"/>
-      <rect x="130" y="190" width="300" height="70" rx="10" fill="#3b82f6" opacity=".08"/>
-      <text x="280" y="222" textAnchor="middle" fill="#3b82f6" fontSize="13" fontFamily="DM Sans, sans-serif" fontWeight="700">RECHTER STELLING</text>
-      <text x="280" y="240" textAnchor="middle" fill="#8896a8" fontSize="11" fontFamily="Space Mono, monospace">7 laden • Knel / Malleabel / Las</text>
-    </g>
+    <g onClick={onClickLeft} style={{cursor:'pointer'}}><rect x="80" y="60" width="500" height="90" rx="10" fill="#1c2533" stroke="#f97316" strokeWidth="2" strokeDasharray="6 3"/><rect x="80" y="60" width="500" height="90" rx="10" fill="#f97316" opacity=".08"/><text x="330" y="100" textAnchor="middle" fill="#f97316" fontSize="13" fontFamily="DM Sans" fontWeight="700">LINKER STELLING</text><text x="330" y="118" textAnchor="middle" fill="#8896a8" fontSize="11" fontFamily="Space Mono, monospace">12 laden • Prestabo / Profipress / Gas</text></g>
+    <g onClick={onClickRight} style={{cursor:'pointer'}}><rect x="130" y="190" width="300" height="70" rx="10" fill="#1c2533" stroke="#3b82f6" strokeWidth="2" strokeDasharray="6 3"/><rect x="130" y="190" width="300" height="70" rx="10" fill="#3b82f6" opacity=".08"/><text x="280" y="222" textAnchor="middle" fill="#3b82f6" fontSize="13" fontFamily="DM Sans" fontWeight="700">RECHTER STELLING</text><text x="280" y="240" textAnchor="middle" fill="#8896a8" fontSize="11" fontFamily="Space Mono, monospace">7 laden • Knel / Malleabel / Las</text></g>
   </svg>
 );
 
 // ─── MAIN APP ───────────────────────────────────────────────────────────
 export default function App() {
-  const [view, setView] = useState("home"); // home | linker | rechter | drawer
+  const [session, setSession] = useState(null);
+  const [busInfo, setBusInfo] = useState(null);
+  const [authScreen, setAuthScreen] = useState("welcome");
+  const [authName, setAuthName] = useState("");
+  const [authBusName, setAuthBusName] = useState("");
+  const [authCode, setAuthCode] = useState("");
+  const [authError, setAuthError] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [view, setView] = useState("home");
   const [side, setSide] = useState(null);
   const [drawer, setDrawer] = useState(null);
   const [cart, setCart] = useState([]);
   const [showCart, setShowCart] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
   const [showGlobalSearch, setShowGlobalSearch] = useState(false);
   const [modal, setModal] = useState(null);
   const [qty, setQty] = useState(1);
@@ -610,386 +488,189 @@ export default function App() {
   const [search, setSearch] = useState("");
   const [globalSearch, setGlobalSearch] = useState("");
   const toastTimer = useRef(null);
+  const pollRef = useRef(null);
 
-  // Load cart from persistent storage
   useEffect(() => {
     (async () => {
-      try {
-        const r = await window.storage.get("cart-data");
-        if (r && r.value) setCart(JSON.parse(r.value));
-      } catch(e) {}
+      const sess = await sGet("my-session", false);
+      if (sess) {
+        const bus = await sGet("bus-" + sess.busCode, true);
+        if (bus && bus.members.some(m => m.id === sess.userId)) {
+          setSession(sess); setBusInfo(bus);
+          const orders = await sGet("orders-" + sess.busCode, true);
+          if (orders) setCart(orders);
+        }
+      }
+      setLoading(false);
     })();
   }, []);
 
-  // Save cart
-  useEffect(() => {
-    (async () => {
-      try { await window.storage.set("cart-data", JSON.stringify(cart)); } catch(e) {}
-    })();
-  }, [cart]);
+  const refreshData = useCallback(async () => {
+    if (!session) return;
+    const orders = await sGet("orders-" + session.busCode, true);
+    if (orders) setCart(orders);
+    const bus = await sGet("bus-" + session.busCode, true);
+    if (bus) {
+      setBusInfo(bus);
+      if (!bus.members.some(m => m.id === session.userId)) {
+        setSession(null); setBusInfo(null); setCart([]);
+        try { await S.delete("my-session", false); } catch {}
+      }
+    }
+  }, [session]);
 
-  const showToast = (msg) => {
-    setToast(msg);
-    if (toastTimer.current) clearTimeout(toastTimer.current);
-    toastTimer.current = setTimeout(() => setToast(null), 2000);
+  useEffect(() => {
+    if (!session) return;
+    pollRef.current = setInterval(refreshData, 8000);
+    return () => clearInterval(pollRef.current);
+  }, [session, refreshData]);
+
+  const saveCart = async (nc) => { setCart(nc); if (session) await sSet("orders-" + session.busCode, nc, true); };
+
+  const createBus = async () => {
+    if (!authName.trim() || !authBusName.trim()) { setAuthError("Vul alle velden in"); return; }
+    const userId = genId(), code = genBusCode();
+    const bus = { name: authBusName.trim(), code, monteurId: userId, members: [{ id: userId, name: authName.trim(), role: "monteur" }] };
+    await sSet("bus-" + code, bus, true);
+    await sSet("orders-" + code, [], true);
+    const sess = { userId, name: authName.trim(), busCode: code, role: "monteur" };
+    await sSet("my-session", sess, false);
+    setSession(sess); setBusInfo(bus); setCart([]);
   };
 
-  const addToCart = (item, amount) => {
-    setCart(prev => {
-      const key = `${item.code}-${side}`;
-      const idx = prev.findIndex(c => c.key === key);
-      if (idx >= 0) {
-        const next = [...prev];
-        next[idx] = { ...next[idx], quantity: next[idx].quantity + amount };
-        return next;
-      }
-      return [...prev, { key, name: item.name, code: item.code, quantity: amount }];
-    });
-    showToast(`${amount}x ${item.name} toegevoegd`);
+  const joinBus = async () => {
+    if (!authName.trim() || !authCode.trim()) { setAuthError("Vul alle velden in"); return; }
+    const code = authCode.trim().toUpperCase();
+    const bus = await sGet("bus-" + code, true);
+    if (!bus) { setAuthError("Buscode niet gevonden"); return; }
+    if (bus.members.some(m => m.name.toLowerCase() === authName.trim().toLowerCase())) { setAuthError("Er is al iemand met deze naam"); return; }
+    const userId = genId();
+    bus.members.push({ id: userId, name: authName.trim(), role: "hulpmonteur" });
+    await sSet("bus-" + code, bus, true);
+    const sess = { userId, name: authName.trim(), busCode: code, role: "hulpmonteur" };
+    await sSet("my-session", sess, false);
+    setSession(sess); setBusInfo(bus);
+    const orders = await sGet("orders-" + code, true);
+    if (orders) setCart(orders);
+  };
+
+  const removeMember = async (mid) => {
+    if (!busInfo || session.role !== "monteur") return;
+    const u = { ...busInfo, members: busInfo.members.filter(m => m.id !== mid) };
+    await sSet("bus-" + busInfo.code, u, true);
+    setBusInfo(u);
+  };
+
+  const logout = async () => {
+    try { await S.delete("my-session", false); } catch {}
+    setSession(null); setBusInfo(null); setCart([]); setAuthScreen("welcome");
+    setAuthName(""); setAuthCode(""); setAuthBusName(""); setAuthError("");
+    setView("home"); setSide(null); setDrawer(null);
+  };
+
+  const showToastMsg = (m) => { setToast(m); if (toastTimer.current) clearTimeout(toastTimer.current); toastTimer.current = setTimeout(() => setToast(null), 2000); };
+
+  const addToCart = async (item, amount) => {
+    const key = `${item.code}-${side}`;
+    const nc = [...cart];
+    const idx = nc.findIndex(c => c.key === key);
+    if (idx >= 0) nc[idx] = { ...nc[idx], quantity: nc[idx].quantity + amount };
+    else nc.push({ key, name: item.name, code: item.code, quantity: amount, addedBy: session?.name || "?" });
+    await saveCart(nc);
+    showToastMsg(`${amount}x ${item.name} toegevoegd`);
     setModal(null);
   };
 
-  const removeFromCart = (key) => setCart(prev => prev.filter(c => c.key !== key));
-  const clearCart = () => setCart([]);
+  const removeFromCart = async (key) => { await saveCart(cart.filter(c => c.key !== key)); };
+  const clearCartAll = async () => { await saveCart([]); };
   const cartCount = cart.reduce((s, c) => s + c.quantity, 0);
 
-  const sendEmail = () => {
+  const sendEmail = async () => {
     if (cart.length === 0) return;
-    let body = "Beste,\n\nOnderstaande materialen komen uit mijn busvoorraad. Zou je deze kunnen bestellen op het project zodat ik deze weer kan aanvullen?\n\n";
+    let body = `Beste,\n\nOnderstaande materialen komen uit de busvoorraad van ${busInfo?.name || "onze bus"}. Zou je deze kunnen bestellen op het project zodat we deze weer kunnen aanvullen?\n\n`;
     cart.forEach(c => { body += `${c.quantity}x ${c.name} (${c.code})\n`; });
-    window.open(`mailto:?subject=Bestellijst Bus Voorraad&body=${encodeURIComponent(body)}`, '_self');
-    clearCart();
-    setShowCart(false);
-    showToast("Bestellijst verzonden!");
+    body += `\nVerzonden door: ${session?.name}`;
+    window.open(`mailto:?subject=Bestellijst ${busInfo?.name || "Bus"}&body=${encodeURIComponent(body)}`, '_self');
+    await clearCartAll(); setShowCart(false); showToastMsg("Bestellijst verzonden!");
   };
 
   const goSide = (s) => { setSide(s); setView(s); setSearch(""); };
   const goDrawer = (d) => { setDrawer(d); setView("drawer"); setSearch(""); };
   const goHome = () => { setView("home"); setSide(null); setDrawer(null); setSearch(""); };
-  const goBack = () => {
-    if (view === "drawer") { setView(side); setDrawer(null); setSearch(""); }
-    else goHome();
-  };
+  const goBack = () => { if (view === "drawer") { setView(side); setDrawer(null); setSearch(""); } else goHome(); };
 
   const data = side === "linker" ? LINKER_LADEN : RECHTER_LADEN;
   const drawerData = drawer ? (data[drawer] || []) : [];
   const isInfoDrawer = drawerData && drawerData._info;
   const drawerItems = isInfoDrawer ? [] : (Array.isArray(drawerData) ? drawerData : []);
-  const filteredItems = search
-    ? drawerItems.filter(i => i.name.toLowerCase().includes(search.toLowerCase()) || i.code.includes(search))
-    : drawerItems;
-    const allDrawerEntries = [
-  ...Object.entries(LINKER_LADEN).flatMap(([drawerName, items]) =>
-    Array.isArray(items)
-      ? items.map(item => ({ ...item, side: "linker", drawer: drawerName }))
-      : []
-  ),
-  ...Object.entries(RECHTER_LADEN).flatMap(([drawerName, items]) =>
-    Array.isArray(items)
-      ? items.map(item => ({ ...item, side: "rechter", drawer: drawerName }))
-      : []
-  ),
-];
+  const filteredItems = search ? drawerItems.filter(i => i.name.toLowerCase().includes(search.toLowerCase()) || i.code.includes(search)) : drawerItems;
+  const allDrawerEntries = [...Object.entries(LINKER_LADEN).flatMap(([dn, it]) => Array.isArray(it) ? it.map(i => ({ ...i, side: "linker", drawer: dn })) : []), ...Object.entries(RECHTER_LADEN).flatMap(([dn, it]) => Array.isArray(it) ? it.map(i => ({ ...i, side: "rechter", drawer: dn })) : [])];
+  const filteredGlobalItems = globalSearch ? allDrawerEntries.filter(i => i.name.toLowerCase().includes(globalSearch.toLowerCase()) || i.code.includes(globalSearch)) : [];
 
-const filteredGlobalItems = globalSearch
-  ? allDrawerEntries.filter(
-      i =>
-        i.name.toLowerCase().includes(globalSearch.toLowerCase()) ||
-        i.code.includes(globalSearch)
-    )
-  : [];
+  if (loading) return <><style>{CSS}</style><div className="auth-wrap"><div style={{color:'var(--text2)'}}>Laden...</div></div></>;
+
+  if (!session) return (
+    <><style>{CSS}</style><div className="auth-wrap"><div className="auth-card">
+      <div className="auth-logo">Bonarius</div>
+      {authScreen === "welcome" && <><div className="auth-title">Voorraadbeheer</div><div style={{textAlign:'center',color:'var(--text2)',fontSize:14,marginBottom:24}}>Beheer de voorraad in je bedrijfsbus samen met je team</div><button className="auth-btn auth-btn-primary" onClick={() => { setAuthScreen("create"); setAuthError(""); }}>🚐 Nieuwe bus aanmaken</button><div className="auth-divider">of</div><button className="auth-btn auth-btn-blue" onClick={() => { setAuthScreen("join"); setAuthError(""); }}>🔑 Deelnemen aan een bus</button></>}
+      {authScreen === "create" && <><div className="auth-title">Bus aanmaken</div>{authError && <div className="auth-error">{authError}</div>}<input className="auth-input" placeholder="Jouw naam" value={authName} onChange={e => { setAuthName(e.target.value); setAuthError(""); }} /><input className="auth-input" placeholder="Naam van de bus (bijv. Movano Marchel)" value={authBusName} onChange={e => { setAuthBusName(e.target.value); setAuthError(""); }} /><button className="auth-btn auth-btn-primary" onClick={createBus}>Bus aanmaken</button><button className="auth-btn auth-btn-secondary" onClick={() => setAuthScreen("welcome")}>Terug</button><div className="auth-sub">Je ontvangt een buscode om te delen met je hulpmonteur</div></>}
+      {authScreen === "join" && <><div className="auth-title">Deelnemen</div>{authError && <div className="auth-error">{authError}</div>}<input className="auth-input" placeholder="Jouw naam" value={authName} onChange={e => { setAuthName(e.target.value); setAuthError(""); }} /><input className="auth-input" placeholder="Buscode (bijv. BUS-7X2K)" value={authCode} onChange={e => { setAuthCode(e.target.value.toUpperCase()); setAuthError(""); }} style={{fontFamily:'Space Mono, monospace',letterSpacing:2}} /><button className="auth-btn auth-btn-blue" onClick={joinBus}>Deelnemen</button><button className="auth-btn auth-btn-secondary" onClick={() => setAuthScreen("welcome")}>Terug</button><div className="auth-sub">Vraag de buscode aan je monteur</div></>}
+    </div></div></>
+  );
+
+  if (showSettings) return (
+    <><style>{CSS}</style><div className="app">
+      <div className="header"><div className="header-top"><div><button onClick={() => setShowSettings(false)} style={{background:'none',border:'none',color:'white',cursor:'pointer',padding:'4px 0',display:'flex',alignItems:'center',gap:4}}><IconBack/><span style={{fontSize:14}}>Terug</span></button><div style={{display:'flex',alignItems:'center',gap:'10px'}}><img src="/logo.png" alt="logo" style={{height:'28px',objectFit:'contain'}} /><div className="logo-text">Bonarius</div></div><div className="title">Instellingen</div></div><div/></div></div>
+      <div style={{padding:16}}>
+        <div className="settings-section"><div className="settings-label">Bus</div><div className="settings-value">{busInfo?.name}</div></div>
+        <div className="settings-section"><div className="settings-label">Buscode — tik om te kopiëren</div><div className="bus-code-display" onClick={() => { navigator.clipboard?.writeText(busInfo?.code); showToastMsg("Code gekopieerd!"); }}>{busInfo?.code}</div><div style={{fontSize:12,color:'var(--text2)',textAlign:'center'}}>Deel deze code met je hulpmonteur</div></div>
+        <div className="settings-section"><div className="settings-label">Ingelogd als</div><div className="settings-value">{session.name} <span style={{color:'var(--accent)',fontSize:12,fontFamily:'Space Mono, monospace'}}>({session.role})</span></div></div>
+        <div className="settings-section"><div className="settings-label">Teamleden ({busInfo?.members?.length})</div>{busInfo?.members?.map(m => (<div key={m.id} className="member-item"><div><div className="member-name">{m.name}</div><div className="member-role">{m.role}</div></div>{session.role === "monteur" && m.role === "hulpmonteur" && <button className="member-remove" onClick={() => removeMember(m.id)}>Verwijderen</button>}</div>))}</div>
+        <button className="auth-btn auth-btn-secondary" onClick={logout} style={{marginTop:16}}>Uitloggen</button>
+      </div>
+    </div>{toast && <div className="toast">{toast}</div>}</>
+  );
 
   return (
-    <>
-      <style>{CSS}</style>
-      <div className="app">
-        
-{/* Header */}
-<div className="header">
-  <div className="header-top">
-    <div>
-      {view !== "home" && (
-        <button
-          onClick={goBack}
-          style={{
-            background: "none",
-            border: "none",
-            color: "white",
-            cursor: "pointer",
-            padding: "4px 0",
-            display: "flex",
-            alignItems: "center",
-            gap: 4,
-          }}
-        >
-          <IconBack />
-          <span style={{ fontSize: 14 }}>Terug</span>
-        </button>
-      )}
-
-      <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-        <img
-          src="/logo.png"
-          alt="logo"
-          style={{ height: "28px", objectFit: "contain" }}
-        />
-        <div className="logo-text">Bonarius</div>
-      </div>
-
-      <div className="title">
-        {view === "home" && "Voorraadbeheer Movano"}
-        {view === "linker" && "Linker Stelling"}
-        {view === "rechter" && "Rechter Stelling"}
-        {view === "drawer" && drawer}
-      </div>
-    </div>
-
-    <div style={{ display: "flex", flexDirection: "column", gap: "8px", alignItems: "flex-end" }}>
-      <button className="cart-btn" onClick={() => setShowCart(true)}>
-        <IconCart /> Lijst
-        {cartCount > 0 && <span className="cart-badge">{cartCount}</span>}
-      </button>
-
-      <button
-        onClick={() => setShowGlobalSearch(true)}
-        style={{
-          width: "44px",
-          height: "44px",
-          borderRadius: "12px",
-          border: "none",
-          background: "var(--surface2)",
-          color: "white",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          cursor: "pointer",
-        }}
-      >
-        <IconSearch />
-      </button>
-    </div>
-  </div>
-
-  {/* Breadcrumb */}
-  <div className="breadcrumb">
-    <span onClick={goHome} className={view === "home" ? "active" : ""}>
-      Home
-    </span>
-
-    {(view === "linker" || view === "rechter" || view === "drawer") && (
-      <>
-        <span className="sep">›</span>
-        <span
-          onClick={() => goSide(side)}
-          className={view !== "drawer" ? "active" : ""}
-        >
-          {side === "linker" ? "Linker Stelling" : "Rechter Stelling"}
-        </span>
-      </>
-    )}
-
-    {view === "drawer" && (
-      <>
-        <span className="sep">›</span>
-        <span className="active">{drawer}</span>
-      </>
-    )}
-  </div>
-</div>
-
-{/* Views */}
-        {view === "home" && (
-          <div className="van-view">
-            <div className="van-svg-container">
-              <VanSVG onClickLeft={() => goSide("linker")} onClickRight={() => goSide("rechter")} />
-            </div>
-            <div className="side-cards">
-              <div className="side-card" onClick={() => goSide("linker")}>
-                <div className="icon">🔧</div>
-                <div className="label">Linker Stelling</div>
-                <div className="sub">12 laden • Pers & Gas</div>
-              </div>
-              <div className="side-card" onClick={() => goSide("rechter")}>
-                <div className="icon">⚙️</div>
-                <div className="label">Rechter Stelling</div>
-                <div className="sub">7 laden • Knel & Las</div>
-              </div>
+    <><style>{CSS}</style><div className="app">
+      <div className="header">
+        <div className="header-top">
+          <div>
+            {view !== "home" && <button onClick={goBack} style={{background:'none',border:'none',color:'white',cursor:'pointer',padding:'4px 0',display:'flex',alignItems:'center',gap:4}}><IconBack/><span style={{fontSize:14}}>Terug</span></button>}
+            <div style={{display:'flex',alignItems:'center',gap:'10px'}}><img src="/logo.png" alt="logo" style={{height:'28px',objectFit:'contain'}} /><div className="logo-text">Bonarius</div></div>
+            <div className="title">{view === "home" ? ("Voorraadbeheer " + (busInfo?.name || "")) : view === "linker" ? "Linker Stelling" : view === "rechter" ? "Rechter Stelling" : drawer}</div>
+            <div className="user-badge">{session.name} • {session.role}</div>
+          </div>
+          <div style={{display:'flex',flexDirection:'column',gap:8,alignItems:'flex-end'}}>
+            <button className="cart-btn" onClick={() => { refreshData(); setShowCart(true); }}><IconCart/> Lijst{cartCount > 0 && <span className="cart-badge">{cartCount}</span>}</button>
+            <div style={{display:'flex',gap:8}}>
+              <button onClick={() => setShowGlobalSearch(true)} style={{width:44,height:44,borderRadius:12,border:'none',background:'var(--surface2)',color:'white',display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer'}}><IconSearch/></button>
+              <button onClick={() => { refreshData(); setShowSettings(true); }} style={{width:44,height:44,borderRadius:12,border:'none',background:'var(--surface2)',color:'white',display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer'}}><IconGear/></button>
             </div>
           </div>
-        )}
-
-        {(view === "linker" || view === "rechter") && (
-          <div className="drawer-list">
-            <div className="drawer-grid">
-              {Object.entries(data).map(([name, items]) => {
-                const isInfo = items && items._info;
-                const count = Array.isArray(items) ? items.length : 0;
-                const isEmpty = !isInfo && count === 0;
-                return (
-                <button key={name} className={`drawer-btn ${isEmpty ? 'empty' : ''}`} onClick={() => !isEmpty && goDrawer(name)}>
-                  <div className="num">{name.replace("Lade ","")}</div>
-                  <div className="dtxt">{isInfo ? items._info : count > 0 ? `${count} art.` : "Leeg"}</div>
-                </button>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-        {view === "drawer" && (
-          <div className="article-list">
-            {isInfoDrawer ? (
-              <div style={{textAlign:'center',padding:'60px 20px',color:'var(--text2)'}}>
-                <div style={{fontSize:48,marginBottom:16}}>{drawerData._info.split(' ')[0]}</div>
-                <div style={{fontSize:16,fontWeight:500,color:'var(--text)'}}>{drawerData._info.substring(drawerData._info.indexOf(' ')+1)}</div>
-                <div style={{fontSize:13,marginTop:8,color:'var(--text2)'}}>Deze lade bevat geen bestelbare artikelen</div>
-              </div>
-            ) : (
-            <>
-            <div className="search-bar">
-              <span className="search-icon"><IconSearch/></span>
-              <input placeholder="Zoek artikel of code..." value={search} onChange={e => setSearch(e.target.value)} />
-              {search && <button onClick={() => setSearch("")} style={{background:'none',border:'none',color:'var(--text2)',fontSize:18,cursor:'pointer'}}>✕</button>}
-            </div>
-            {filteredItems.length === 0 && <div style={{textAlign:'center',color:'var(--text2)',padding:40}}>Geen artikelen gevonden</div>}
-            {filteredItems.map((item, i) => (
-              <div key={i} className="article-item" onClick={() => { setModal(item); setQty(item.qty); }}>
-                <img src={item.img} alt="" loading="lazy" />
-                <div className="article-info">
-                  <div className="article-name">{item.name}</div>
-                  <div className="article-code">{item.code}</div>
-                </div>
-                <div className="article-qty-badge">std: {item.qty}</div>
-                <div className="add-icon">+</div>
-              </div>
-            ))}
-            </>
-            )}
-          </div>
-        )}
-
-        {/* Quantity Modal */}
-        {modal && (
-          <div className="modal-overlay" onClick={() => setModal(null)}>
-            <div className="modal-sheet" onClick={e => e.stopPropagation()}>
-              <div className="modal-handle"/>
-              <div className="modal-title">{modal.name}</div>
-              <div className="modal-sub">Code: {modal.code} • Standaard: {modal.qty}</div>
-              <div className="qty-controls">
-                <button className="qty-btn" onClick={() => setQty(q => Math.max(1, q - 1))}>−</button>
-                <div className="qty-display">{qty}</div>
-                <button className="qty-btn" onClick={() => setQty(q => q + 1)}>+</button>
-              </div>
-              <div className="modal-actions">
-                <button className="btn-cancel" onClick={() => setModal(null)}>Annuleren</button>
-                <button className="btn-add" onClick={() => addToCart(modal, qty)}>Toevoegen</button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Cart Panel */}
-        {showCart && (
-          <div className="cart-overlay" onClick={() => setShowCart(false)}>
-            <div className="cart-sheet" onClick={e => e.stopPropagation()}>
-              <div className="modal-handle"/>
-              <div className="cart-header">
-                <div className="cart-title">Bestellijst ({cartCount})</div>
-                <button className="cart-close" onClick={() => setShowCart(false)}>✕</button>
-              </div>
-              <div className="cart-items">
-                {cart.length === 0 && <div className="cart-empty">De bestellijst is leeg</div>}
-                {cart.map(c => (
-                  <div key={c.key} className="cart-item">
-                    <div className="cart-item-qty">{c.quantity}×</div>
-                    <div className="cart-item-info">
-                      <div className="cart-item-name">{c.name}</div>
-                      <div className="cart-item-code">{c.code}</div>
-                    </div>
-                    <button className="cart-item-del" onClick={() => removeFromCart(c.key)}>✕</button>
-                  </div>
-                ))}
-              </div>
-              <div className="cart-actions">
-                {cart.length > 0 && (
-                  <>
-                    <button className="btn-email" onClick={sendEmail}>📧 Verzenden naar Mail</button>
-                    <button className="btn-clear" onClick={clearCart}>Lijst leegmaken</button>
-                  </>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {showGlobalSearch && (
-  <div className="cart-overlay" onClick={() => setShowGlobalSearch(false)}>
-    <div className="cart-sheet" onClick={e => e.stopPropagation()}>
-      <div className="modal-handle" />
-      <div className="cart-header">
-        <div className="cart-title">Zoek in alle lades</div>
-        <button className="cart-close" onClick={() => setShowGlobalSearch(false)}>✕</button>
+        </div>
+        <div className="breadcrumb"><span onClick={goHome} className={view==="home"?"active":""}>Home</span>{(view==="linker"||view==="rechter"||view==="drawer")&&<><span className="sep">›</span><span onClick={() => goSide(side)} className={view!=="drawer"?"active":""}>{side==="linker"?"Linker Stelling":"Rechter Stelling"}</span></>}{view==="drawer"&&<><span className="sep">›</span><span className="active">{drawer}</span></>}</div>
       </div>
 
-      <div className="search-bar" style={{ marginBottom: 16 }}>
-        <span className="search-icon"><IconSearch /></span>
-        <input
-          placeholder="Zoek artikel of code..."
-          value={globalSearch}
-          onChange={e => setGlobalSearch(e.target.value)}
-          autoFocus
-        />
-        {globalSearch && (
-          <button
-            onClick={() => setGlobalSearch("")}
-            style={{ background: "none", border: "none", color: "var(--text2)", fontSize: 18, cursor: "pointer" }}
-          >
-            ✕
-          </button>
-        )}
-      </div>
+      {view === "home" && <div className="van-view"><div className="van-svg-container"><VanSVG onClickLeft={() => goSide("linker")} onClickRight={() => goSide("rechter")} /></div><div className="side-cards"><div className="side-card" onClick={() => goSide("linker")}><div className="icon">🔧</div><div className="label">Linker Stelling</div><div className="sub">12 laden • Pers & Gas</div></div><div className="side-card" onClick={() => goSide("rechter")}><div className="icon">⚙️</div><div className="label">Rechter Stelling</div><div className="sub">7 laden • Knel & Las</div></div></div></div>}
 
-      <div className="cart-items">
-        {!globalSearch && (
-          <div className="cart-empty">Typ een artikelnaam of code</div>
-        )}
+      {(view === "linker" || view === "rechter") && <div className="drawer-list"><div className="drawer-grid">{Object.entries(data).map(([name, items]) => { const isInfo = items && items._info; const count = Array.isArray(items) ? items.length : 0; const isEmpty = !isInfo && count === 0; return <button key={name} className={`drawer-btn ${isEmpty?'empty':''}`} onClick={() => !isEmpty && goDrawer(name)}><div className="num">{name.replace("Lade ","")}</div><div className="dtxt">{isInfo ? items._info : count > 0 ? `${count} art.` : "Leeg"}</div></button>; })}</div></div>}
 
-        {globalSearch && filteredGlobalItems.length === 0 && (
-          <div className="cart-empty">Geen artikelen gevonden</div>
-        )}
+      {view === "drawer" && <div className="article-list">
+        {isInfoDrawer ? <div style={{textAlign:'center',padding:'60px 20px',color:'var(--text2)'}}><div style={{fontSize:48,marginBottom:16}}>{drawerData._info.split(' ')[0]}</div><div style={{fontSize:16,fontWeight:500,color:'var(--text)'}}>{drawerData._info.substring(drawerData._info.indexOf(' ')+1)}</div><div style={{fontSize:13,marginTop:8}}>Geen bestelbare artikelen</div></div> : <>
+        <div className="search-bar"><span className="search-icon"><IconSearch/></span><input placeholder="Zoek artikel of code..." value={search} onChange={e => setSearch(e.target.value)} />{search && <button onClick={() => setSearch("")} style={{background:'none',border:'none',color:'var(--text2)',fontSize:18,cursor:'pointer'}}>✕</button>}</div>
+        {filteredItems.length === 0 && <div style={{textAlign:'center',color:'var(--text2)',padding:40}}>Geen artikelen gevonden</div>}
+        {filteredItems.map((item, i) => <div key={i} className="article-item" onClick={() => { setModal(item); setQty(item.qty); }}><img src={item.img} alt="" loading="lazy" /><div className="article-info"><div className="article-name">{item.name}</div><div className="article-code">{item.code}</div></div><div className="article-qty-badge">std: {item.qty}</div><div className="add-icon">+</div></div>)}
+        </>}
+      </div>}
 
-        {filteredGlobalItems.map((item, i) => (
-          <div
-            key={`${item.side}-${item.drawer}-${item.code}-${i}`}
-            className="article-item"
-            onClick={() => {
-              setSide(item.side);
-              setDrawer(item.drawer);
-              setView("drawer");
-              setShowGlobalSearch(false);
-              setSearch("");
-              setModal(item);
-              setQty(item.qty);
-            }}
-          >
-            <img src={item.img} alt="" loading="lazy" />
-            <div className="article-info">
-              <div className="article-name">{item.name}</div>
-              <div className="article-code">
-                {item.code} • {item.side === "linker" ? "Links" : "Rechts"} • {item.drawer}
-              </div>
-            </div>
-            <div className="article-qty-badge">std: {item.qty}</div>
-          </div>
-        ))}
-      </div>
-    </div>
-  </div>
-)}
+      {modal && <div className="modal-overlay" onClick={() => setModal(null)}><div className="modal-sheet" onClick={e => e.stopPropagation()}><div className="modal-handle"/><div className="modal-title">{modal.name}</div><div className="modal-sub">Code: {modal.code} • Standaard: {modal.qty}</div><div className="qty-controls"><button className="qty-btn" onClick={() => setQty(q => Math.max(1, q - 1))}>−</button><div className="qty-display">{qty}</div><button className="qty-btn" onClick={() => setQty(q => q + 1)}>+</button></div><div className="modal-actions"><button className="btn-cancel" onClick={() => setModal(null)}>Annuleren</button><button className="btn-add" onClick={() => addToCart(modal, qty)}>Toevoegen</button></div></div></div>}
 
-        {/* Toast */}
-        {toast && <div className="toast">{toast}</div>}
-      </div>
-    </>
+      {showCart && <div className="cart-overlay" onClick={() => setShowCart(false)}><div className="cart-sheet" onClick={e => e.stopPropagation()}><div className="modal-handle"/><div className="cart-header"><div className="cart-title">Bestellijst ({cartCount})</div><button className="cart-close" onClick={() => setShowCart(false)}>✕</button></div><div className="cart-items">{cart.length === 0 && <div className="cart-empty">De bestellijst is leeg</div>}{cart.map(c => <div key={c.key} className="cart-item"><div className="cart-item-qty">{c.quantity}×</div><div className="cart-item-info"><div className="cart-item-name">{c.name}</div><div className="cart-item-code">{c.code}</div>{c.addedBy && <div className="cart-item-by">Toegevoegd door {c.addedBy}</div>}</div><button className="cart-item-del" onClick={() => removeFromCart(c.key)}>✕</button></div>)}</div><div className="cart-actions">{cart.length > 0 && <><button className="btn-email" onClick={sendEmail}>📧 Verzenden naar Mail</button><button className="btn-clear" onClick={clearCartAll}>Lijst leegmaken</button></>}</div></div></div>}
+
+      {showGlobalSearch && <div className="cart-overlay" onClick={() => setShowGlobalSearch(false)}><div className="cart-sheet" onClick={e => e.stopPropagation()}><div className="modal-handle"/><div className="cart-header"><div className="cart-title">Zoek in alle lades</div><button className="cart-close" onClick={() => setShowGlobalSearch(false)}>✕</button></div><div className="search-bar" style={{marginBottom:16}}><span className="search-icon"><IconSearch/></span><input placeholder="Zoek artikel of code..." value={globalSearch} onChange={e => setGlobalSearch(e.target.value)} autoFocus />{globalSearch && <button onClick={() => setGlobalSearch("")} style={{background:'none',border:'none',color:'var(--text2)',fontSize:18,cursor:'pointer'}}>✕</button>}</div><div className="cart-items">{!globalSearch && <div className="cart-empty">Typ een artikelnaam of code</div>}{globalSearch && filteredGlobalItems.length === 0 && <div className="cart-empty">Geen artikelen gevonden</div>}{filteredGlobalItems.map((item, i) => <div key={`${item.side}-${item.drawer}-${item.code}-${i}`} className="article-item" onClick={() => { setSide(item.side); setDrawer(item.drawer); setView("drawer"); setShowGlobalSearch(false); setSearch(""); setModal(item); setQty(item.qty); }}><img src={item.img} alt="" loading="lazy" /><div className="article-info"><div className="article-name">{item.name}</div><div className="article-code">{item.code} • {item.side === "linker" ? "Links" : "Rechts"} • {item.drawer}</div></div><div className="article-qty-badge">std: {item.qty}</div></div>)}</div></div></div>}
+
+      {toast && <div className="toast">{toast}</div>}
+    </div></>
   );
 }
