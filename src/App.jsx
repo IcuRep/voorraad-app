@@ -690,17 +690,29 @@ export default function App() {
                   <IconBack/><span style={{fontSize:14}}>Terug</span>
                 </button>
               )}
-              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-              <img src="/logo.png" alt="logo" style={{ height: "28px", objectFit: "contain" }} />
-              <div className="logo-text">Bonarius</div>
-              </div>
+              <div style={{ display: "flex", flexDirection: "column", padding: "10px 16px" }}>
+  
+  {/* Bovenste rij */}
+  <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+    <img 
+      src="/logo.png" 
+      alt="logo" 
+      style={{ height: "26px", objectFit: "contain" }} 
+    />
+    <div className="logo-text" style={{ fontWeight: "600", fontSize: "16px" }}>
+      Bonarius
+    </div>
+  </div>
 
-              <div className="title">
-                {view === "home" && "Voorraadbeheer Movano"}
-                {view === "linker" && "Linker Stelling"}
-                {view === "rechter" && "Rechter Stelling"}
-                {view === "drawer" && drawer}
-              </div>
+  {/* Titel */}
+  <div className="title" style={{ marginTop: "4px", fontSize: "14px", opacity: 0.7 }}>
+    {view === "home" && "Voorraadbeheer Movano"}
+    {view === "linker" && "Linker Stelling"}
+    {view === "rechter" && "Rechter Stelling"}
+    {view === "drawer" && drawer}
+  </div>
+
+</div>
             </div>
             <button className="cart-btn" onClick={() => setShowCart(true)}>
               <IconCart/> Lijst
