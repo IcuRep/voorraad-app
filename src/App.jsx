@@ -703,91 +703,101 @@ const filteredGlobalItems = globalSearch
     <>
       <style>{CSS}</style>
       <div className="app">
-        {/* Header */}
-        <div className="header">
-          <div className="header-top">
-  <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-    <img 
-      src="/app-logo.png" 
-      alt="logo" 
-      style={{ height: "28px", objectFit: "contain" }} 
-    />
-    <div className="logo-text">Bonarius</div>
-  </div>
+        
+{/* Header */}
+<div className="header">
+  <div className="header-top">
+    <div>
+      {view !== "home" && (
+        <button
+          onClick={goBack}
+          style={{
+            background: "none",
+            border: "none",
+            color: "white",
+            cursor: "pointer",
+            padding: "4px 0",
+            display: "flex",
+            alignItems: "center",
+            gap: 4,
+          }}
+        >
+          <IconBack />
+          <span style={{ fontSize: 14 }}>Terug</span>
+        </button>
+      )}
 
-  <button className="cart-btn" onClick={() => setShowCart(true)}>
-    <IconCart />
-    {cartCount > 0 && <div className="cart-badge">{cartCount}</div>}
-  </button>
-</div>
-            <div>
-              {view !== "home" && (
-                <button onClick={goBack} style={{background:'none',border:'none',color:'white',cursor:'pointer',padding:'4px 0',display:'flex',alignItems:'center',gap:4}}>
-                  <IconBack/><span style={{fontSize:14}}>Terug</span>
-                </button>
-              )}
-              <div style={{ display: "flex", flexDirection: "column", padding: "10px 16px" }}>
-  
-  {/* Bovenste rij */}
-  <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-    <img 
-      src="/logo.png" 
-      alt="logo" 
-      style={{ height: "26px", objectFit: "contain" }} 
-    />
-    <div className="logo-text" style={{ fontWeight: "600", fontSize: "16px" }}>
-      Bonarius
+      <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+        <img
+          src="/app-logo.png"
+          alt="logo"
+          style={{ height: "28px", objectFit: "contain" }}
+        />
+        <div className="logo-text">Bonarius</div>
+      </div>
+
+      <div className="title">
+        {view === "home" && "Voorraadbeheer Movano"}
+        {view === "linker" && "Linker Stelling"}
+        {view === "rechter" && "Rechter Stelling"}
+        {view === "drawer" && drawer}
+      </div>
+    </div>
+
+    <div style={{ display: "flex", flexDirection: "column", gap: "8px", alignItems: "flex-end" }}>
+      <button className="cart-btn" onClick={() => setShowCart(true)}>
+        <IconCart /> Lijst
+        {cartCount > 0 && <span className="cart-badge">{cartCount}</span>}
+      </button>
+
+      <button
+        onClick={() => setShowGlobalSearch(true)}
+        style={{
+          width: "44px",
+          height: "44px",
+          borderRadius: "12px",
+          border: "none",
+          background: "var(--surface2)",
+          color: "white",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          cursor: "pointer",
+        }}
+      >
+        <IconSearch />
+      </button>
     </div>
   </div>
 
-  {/* Titel */}
-  <div className="title" style={{ marginTop: "4px", fontSize: "14px", opacity: 0.7 }}>
-    {view === "home" && "Voorraadbeheer Movano"}
-    {view === "linker" && "Linker Stelling"}
-    {view === "rechter" && "Rechter Stelling"}
-    {view === "drawer" && drawer}
+  {/* Breadcrumb */}
+  <div className="breadcrumb">
+    <span onClick={goHome} className={view === "home" ? "active" : ""}>
+      Home
+    </span>
+
+    {(view === "linker" || view === "rechter" || view === "drawer") && (
+      <>
+        <span className="sep">›</span>
+        <span
+          onClick={() => goSide(side)}
+          className={view !== "drawer" ? "active" : ""}
+        >
+          {side === "linker" ? "Linker Stelling" : "Rechter Stelling"}
+        </span>
+      </>
+    )}
+
+    {view === "drawer" && (
+      <>
+        <span className="sep">›</span>
+        <span className="active">{drawer}</span>
+      </>
+    )}
   </div>
-
 </div>
-            </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: "8px", alignItems: "flex-end" }}>
-  <button className="cart-btn" onClick={() => setShowCart(true)}>
-    <IconCart/> Lijst
-    {cartCount > 0 && <span className="cart-badge">{cartCount}</span>}
-  </button>
 
-  <button
-    onClick={() => setShowGlobalSearch(true)}
-    style={{
-      width: "44px",
-      height: "44px",
-      borderRadius: "12px",
-      border: "none",
-      background: "var(--surface2)",
-      color: "white",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      cursor: "pointer"
-    }}
-  >
-    <IconSearch />
-  </button>
-</div>
-          </div>
-          {/* Breadcrumb */}
-          <div className="breadcrumb">
-            <span onClick={goHome} className={view==="home"?"active":""}>Home</span>
-            {(view === "linker" || view === "rechter" || view === "drawer") && (
-              <><span className="sep">›</span><span onClick={() => goSide(side)} className={view!=="drawer"?"active":""}>{side === "linker" ? "Links" : "Rechts"}</span></>
-            )}
-            {view === "drawer" && (
-              <><span className="sep">›</span><span className="active">{drawer}</span></>
-            )}
-          </div>
-        </div>
-
-        {/* Views */}
+{/* Views */}
         {view === "home" && (
           <div className="van-view">
             <div className="van-svg-container">
