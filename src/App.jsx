@@ -572,8 +572,57 @@ export default function App() {
 }, []);
 
 const refreshData = useCallback(async () => {
+  if (!session) return;
 
-  const saveCart = async (nc) => {
+  const { data: orderRow } = await supabase
+    .from("bus_orders")
+    .select("*")
+    .eq("bus_code", session.busCode)
+    .maybeSingle();
+
+  setCart(orderRow?.items || []);
+
+  const { data: busRow } = await supabase
+    .from("buses")
+    .select("*")
+    .eq("code", session.busCode)
+    .maybeSingle();
+
+  const { data: memberRows } = await supabase
+    .from("bus_members")
+    .select("*")
+    .eq("bus_code", session.busCode);
+
+  if (busRow) {
+    const members = (memberRows || []).map(m => ({
+      id: m.member_id,
+      name: m.name,
+      role: m.role,
+    }));
+
+    setBusInfo({
+      name: busRow.name,
+      code: busRow.code,
+      ownerEmail: busRow.owner_email,
+      members,
+    });
+
+    if (!members.some(m => m.id === session.userId)) {
+      localStorage.removeItem("my-session");
+      setSession(null);
+      setBusInfo(null);
+      setCart([]);
+    }
+  }
+}, [session]);
+
+useEffect(() => {
+  if (!session) return;
+  pollRef.current = setInterval(refreshData, 8000);
+  return () => clearInterval(pollRef.current);
+}, [session, refreshData]);
+
+const saveCart = async (nc) => {
   setCart(nc);
 
   if (!session) return;
