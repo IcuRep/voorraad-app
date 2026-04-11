@@ -1386,7 +1386,7 @@ const deleteApprovedCreatorForever = async (email) => {
             </div>
 
             {row.email !== "m.slootemaker@bonarius.com" && (
-  <>
+  <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
     {row.active ? (
       <button
         className="member-remove"
@@ -1396,13 +1396,20 @@ const deleteApprovedCreatorForever = async (email) => {
       </button>
     ) : (
       <button
-  className="member-activate"
-  onClick={() => reactivateApprovedCreator(row.email)}
->
-  Activeren
-</button>
+        className="member-activate"
+        onClick={() => reactivateApprovedCreator(row.email)}
+      >
+        Activeren
+      </button>
     )}
-  </>
+
+    <button
+      className="member-remove"
+      onClick={() => deleteApprovedCreatorForever(row.email)}
+    >
+      Definitief verwijderen
+    </button>
+  </div>
 )}
           </div>
         ))
