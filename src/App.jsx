@@ -911,7 +911,8 @@ const createInviteCode = async () => {
   showToastMsg("Nieuwe uitnodigingscode gemaakt");
 };
 
-const loadApprovedCreators = async () => {
+
+  const loadApprovedCreators = async () => {
   const currentEmail = (session?.email || busInfo?.ownerEmail || "").toLowerCase();
 
   const mainAdminEmail = "m.slootemaker@bonarius.com";
@@ -932,6 +933,55 @@ const loadApprovedCreators = async () => {
   if (!error) {
     setApprovedCreators(data || []);
   }
+};
+
+const addApprovedCreator = async () => {
+  const email = newCreatorEmail.trim().toLowerCase();
+
+  if (!email) {
+    showToastMsg("Vul een e-mailadres in");
+    return;
+  }
+
+  const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  if (!emailOk) {
+    showToastMsg("Vul een geldig e-mailadres in");
+    return;
+  }
+
+  const { error } = await supabase
+    .from("approved_creators")
+    .upsert(
+      {
+        email,
+        active: true,
+      },
+      { onConflict: "email" }
+    );
+
+  if (error) {
+    showToastMsg("Toevoegen mislukt");
+    return;
+  }
+
+  setNewCreatorEmail("");
+  showToastMsg("Monteur toegevoegd");
+  await loadApprovedCreators();
+};
+
+const removeApprovedCreator = async (email) => {
+  const { error } = await supabase
+    .from("approved_creators")
+    .delete()
+    .eq("email", email);
+
+  if (error) {
+    showToastMsg("Verwijderen mislukt");
+    return;
+  }
+
+  showToastMsg("Monteur verwijderd");
+  await loadApprovedCreators();
 };
 
   const logout = async () => {
