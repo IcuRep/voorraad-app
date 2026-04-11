@@ -4,6 +4,7 @@ import { supabase } from "./supabase";
 // ─── HELPERS ────────────────────────────────────────────────────────────
 const genId = () => Math.random().toString(36).substring(2,8);
 const genBusCode = () => "BUS" + Math.random().toString(36).substring(2,6).toUpperCase();
+const genInviteCode = () => "INV" + Math.random().toString(36).substring(2,6).toUpperCase();
 
 const sGet = async (k, shared) => {
   try {
@@ -505,6 +506,7 @@ export default function App() {
   const [showCart, setShowCart] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showGlobalSearch, setShowGlobalSearch] = useState(false);
+  const [latestInviteCode, setLatestInviteCode] = useState("");
   const [modal, setModal] = useState(null);
   const [qty, setQty] = useState(1);
   const [toast, setToast] = useState(null);
@@ -853,6 +855,30 @@ const saveCart = async (nc) => {
   });
 };
 
+const createInviteCode = async () => {
+  if (!busInfo || session?.role !== "monteur") return;
+
+  const inviteCode = genInviteCode();
+
+  const { error } = await supabase
+    .from("invite_codes")
+    .insert({
+      bus_code: busInfo.code,
+      invite_code: inviteCode,
+      created_by: session.name,
+      is_used: false,
+    });
+
+  if (error) {
+    setAuthError("Uitnodigingscode aanmaken mislukt");
+    showToastMsg("Uitnodigingscode aanmaken mislukt");
+    return;
+  }
+
+  setLatestInviteCode(inviteCode);
+  showToastMsg("Nieuwe uitnodigingscode gemaakt");
+};
+
   const logout = async () => {
   localStorage.removeItem("my-session");
   setSession(null);
@@ -970,7 +996,45 @@ const saveCart = async (nc) => {
       <div className="header"><div className="header-top"><div><button onClick={() => setShowSettings(false)} style={{background:'none',border:'none',color:'white',cursor:'pointer',padding:'4px 0',display:'flex',alignItems:'center',gap:4}}><IconBack/><span style={{fontSize:14}}>Terug</span></button><div style={{display:'flex',alignItems:'center',gap:'10px'}}><img src="/logo.png" alt="logo" style={{height:'28px',objectFit:'contain'}} /><div className="logo-text">Bonarius</div></div><div className="title">Instellingen</div></div><div/></div></div>
       <div style={{padding:16}}>
         <div className="settings-section"><div className="settings-label">Bus</div><div className="settings-value">{busInfo?.name}</div></div>
-        <div className="settings-section"><div className="settings-label">Buscode — tik om te kopiëren</div><div className="bus-code-display" onClick={() => { navigator.clipboard?.writeText(busInfo?.code); showToastMsg("Code gekopieerd!"); }}>{busInfo?.code}</div><div style={{fontSize:12,color:'var(--text2)',textAlign:'center'}}>Deel deze code met je hulpmonteur</div></div>
+        <div className="settings-section">
+  <div className="settings-label">Buscode</div>
+  <div className="bus-code-display">
+    {busInfo?.code}
+  </div>
+  <div style={{fontSize:12,color:'var(--text2)',textAlign:'center'}}>
+    Interne buscode
+  </div>
+</div>
+
+{session.role === "monteur" && (
+  <div className="settings-section">
+    <div className="settings-label">Eenmalige uitnodigingscode</div>
+
+    {latestInviteCode ? (
+      <div
+        className="bus-code-display"
+        onClick={() => {
+          navigator.clipboard?.writeText(latestInviteCode);
+          showToastMsg("Uitnodigingscode gekopieerd!");
+        }}
+      >
+        {latestInviteCode}
+      </div>
+    ) : (
+      <div style={{fontSize:13,color:'var(--text2)',marginBottom:12}}>
+        Maak een code voor een hulpmonteur. Deze code is straks maar 1 keer bruikbaar.
+      </div>
+    )}
+
+    <button
+      className="auth-btn auth-btn-primary"
+      onClick={createInviteCode}
+      style={{marginTop:8}}
+    >
+      Nieuwe uitnodigingscode maken
+    </button>
+  </div>
+)}
         <div className="settings-section"><div className="settings-label">Ingelogd als</div><div className="settings-value">{session.name} <span style={{color:'var(--accent)',fontSize:12,fontFamily:'Space Mono, monospace'}}>({session.role})</span></div></div>
         <div className="settings-section"><div className="settings-label">Teamleden ({busInfo?.members?.length})</div>{busInfo?.members?.map(m => (<div key={m.id} className="member-item"><div><div className="member-name">{m.name}</div><div className="member-role">{m.role}</div></div>{session.role === "monteur" && m.role === "hulpmonteur" && <button className="member-remove" onClick={() => removeMember(m.id)}>Verwijderen</button>}</div>))}</div>
         <button className="auth-btn auth-btn-secondary" onClick={logout} style={{marginTop:16}}>Uitloggen</button>
