@@ -571,13 +571,7 @@ export default function App() {
   })();
 }, []);
 
-  const refreshData = useCallback(async () => {
-
-  useEffect(() => {
-    if (!session) return;
-    pollRef.current = setInterval(refreshData, 8000);
-    return () => clearInterval(pollRef.current);
-  }, [session, refreshData]);
+const refreshData = useCallback(async () => {
 
   const saveCart = async (nc) => {
   setCart(nc);
