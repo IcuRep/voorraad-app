@@ -511,6 +511,8 @@ export default function App() {
   const [approvedCreators, setApprovedCreators] = useState([]);
   const [newCreatorEmail, setNewCreatorEmail] = useState("");
   const [isMainAdmin, setIsMainAdmin] = useState(false);
+  const [allBusMembers, setAllBusMembers] = useState([]);
+const [allBuses, setAllBuses] = useState([]);
   const [modal, setModal] = useState(null);
   const [qty, setQty] = useState(1);
   const [toast, setToast] = useState(null);
@@ -886,22 +888,7 @@ const joinBus = async () => {
   setLatestInviteCode("");
 };
 
-const removeMember = async (mid) => {
-  if (!busInfo || session.role !== "monteur") return;
-
-  await supabase
-    .from("bus_members")
-    .delete()
-    .eq("bus_code", busInfo.code)
-    .eq("member_id", mid);
-
-  const updatedMembers = busInfo.members.filter(m => m.id !== mid);
-
-  setBusInfo({
-    ...busInfo,
-    members: updatedMembers,
-  });
-};
+removeMember
 
 const createInviteCode = async () => {
   if (!busInfo || session?.role !== "monteur") return;
@@ -951,6 +938,42 @@ const createInviteCode = async () => {
   }
 
   setApprovedCreators(data || []);
+};
+
+const loadAdminOverview = async () => {
+  const currentEmail = (session?.email || busInfo?.ownerEmail || "").toLowerCase();
+  const mainAdminEmail = "m.slootemaker@bonarius.com";
+  const admin = currentEmail === mainAdminEmail;
+
+  setIsMainAdmin(admin);
+
+  if (!admin) {
+    setAllBusMembers([]);
+    setAllBuses([]);
+    return;
+  }
+
+  const { data: busesData, error: busesError } = await supabase
+    .from("buses")
+    .select("*")
+    .order("name", { ascending: true });
+
+  const { data: membersData, error: membersError } = await supabase
+    .from("bus_members")
+    .select("*")
+    .order("bus_code", { ascending: true });
+
+  if (busesError) {
+    console.error("Admin buses load error:", busesError);
+  } else {
+    setAllBuses(busesData || []);
+  }
+
+  if (membersError) {
+    console.error("Admin members load error:", membersError);
+  } else {
+    setAllBusMembers(membersData || []);
+  }
 };
 
 const addApprovedCreator = async () => {
@@ -1009,6 +1032,76 @@ const reactivateApprovedCreator = async (email) => {
   }
 
   showToastMsg("Monteur opnieuw geactiveerd");
+  await loadApprovedCreators();
+};
+
+const deactivateBusMember = async (memberId, busCode) => {
+  const { error } = await supabase
+    .from("bus_members")
+    .update({ active: false })
+    .eq("member_id", memberId)
+    .eq("bus_code", busCode);
+
+  if (error) {
+    console.error("Deactivate bus member error:", error);
+    showToastMsg("Buslid deactiveren mislukt");
+    return;
+  }
+
+  showToastMsg("Buslid gedeactiveerd");
+  await loadAdminOverview();
+  await refreshData();
+};
+
+const reactivateBusMember = async (memberId, busCode) => {
+  const { error } = await supabase
+    .from("bus_members")
+    .update({ active: true })
+    .eq("member_id", memberId)
+    .eq("bus_code", busCode);
+
+  if (error) {
+    console.error("Reactivate bus member error:", error);
+    showToastMsg("Buslid activeren mislukt");
+    return;
+  }
+
+  showToastMsg("Buslid geactiveerd");
+  await loadAdminOverview();
+  await refreshData();
+};
+
+const deleteBusMemberAdmin = async (memberId, busCode) => {
+  const { error } = await supabase
+    .from("bus_members")
+    .delete()
+    .eq("member_id", memberId)
+    .eq("bus_code", busCode);
+
+  if (error) {
+    console.error("Delete bus member error:", error);
+    showToastMsg("Buslid verwijderen mislukt");
+    return;
+  }
+
+  showToastMsg("Buslid verwijderd");
+  await loadAdminOverview();
+  await refreshData();
+};
+
+const deleteApprovedCreatorForever = async (email) => {
+  const { error } = await supabase
+    .from("approved_creators")
+    .delete()
+    .eq("email", email);
+
+  if (error) {
+    console.error("Delete approved creator error:", error);
+    showToastMsg("E-mailadres verwijderen mislukt");
+    return;
+  }
+
+  showToastMsg("E-mailadres verwijderd");
   await loadApprovedCreators();
 };
 
@@ -1282,6 +1375,94 @@ const reactivateApprovedCreator = async (email) => {
   </div>
 )}
 
+{isMainAdmin && (
+  <div className="settings-section">
+    <div className="settings-label">Alle bussen en leden</div>
+
+    {allBuses.length === 0 ? (
+      <div style={{ fontSize: 13, color: "var(--text2)" }}>
+        Geen bussen gevonden
+      </div>
+    ) : (
+      allBuses.map(bus => {
+        const membersForBus = allBusMembers.filter(m => m.bus_code === bus.code);
+
+        return (
+          <div
+            key={bus.code}
+            style={{
+              border: "1px solid var(--border)",
+              borderRadius: 12,
+              padding: 12,
+              marginBottom: 12,
+              background: "var(--surface2)",
+            }}
+          >
+            <div style={{ marginBottom: 10 }}>
+              <div style={{ fontWeight: 700 }}>{bus.name}</div>
+              <div
+                style={{
+                  fontSize: 12,
+                  color: "var(--text2)",
+                  fontFamily: "Space Mono, monospace",
+                }}
+              >
+                {bus.code} • eigenaar: {bus.owner_email}
+              </div>
+            </div>
+
+            {membersForBus.length === 0 ? (
+              <div style={{ fontSize: 13, color: "var(--text2)" }}>
+                Geen leden in deze bus
+              </div>
+            ) : (
+              membersForBus.map(member => (
+                <div
+                  key={`${member.bus_code}-${member.member_id}`}
+                  className="member-item"
+                  style={{ opacity: member.active === false ? 0.5 : 1 }}
+                >
+                  <div>
+                    <div className="member-name">{member.name}</div>
+                    <div className="member-role">
+                      {member.role} • {member.active === false ? "inactief" : "actief"}
+                    </div>
+                  </div>
+
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
+                    {member.active === false ? (
+                      <button
+                        className="member-activate"
+                        onClick={() => reactivateBusMember(member.member_id, member.bus_code)}
+                      >
+                        Activeren
+                      </button>
+                    ) : (
+                      <button
+                        className="member-remove"
+                        onClick={() => deactivateBusMember(member.member_id, member.bus_code)}
+                      >
+                        Deactiveren
+                      </button>
+                    )}
+
+                    <button
+                      className="member-remove"
+                      onClick={() => deleteBusMemberAdmin(member.member_id, member.bus_code)}
+                    >
+                      Verwijderen
+                    </button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        );
+      })
+    )}
+  </div>
+)}
+
         <button className="auth-btn auth-btn-secondary" onClick={logout} style={{marginTop:16}}>Uitloggen</button>
       </div>
     </div>{toast && <div className="toast">{toast}</div>}</>
@@ -1301,7 +1482,7 @@ const reactivateApprovedCreator = async (email) => {
             <button className="cart-btn" onClick={() => { refreshData(); setShowCart(true); }}><IconCart/> Lijst{cartCount > 0 && <span className="cart-badge">{cartCount}</span>}</button>
             <div style={{display:'flex',gap:8}}>
               <button onClick={() => setShowGlobalSearch(true)} style={{width:44,height:44,borderRadius:12,border:'none',background:'var(--surface2)',color:'white',display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer'}}><IconSearch/></button>
-              <button onClick={() => { refreshData(); loadApprovedCreators(); setShowSettings(true); }} style={{width:44,height:44,borderRadius:12,border:'none',background:'var(--surface2)',color:'white',display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer'}}><IconGear/></button>
+              <button onClick={() => { refreshData(); loadApprovedCreators(); loadAdminOverview(); setShowSettings(true); }} style={{width:44,height:44,borderRadius:12,border:'none',background:'var(--surface2)',color:'white',display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer'}}><IconGear/></button>
             </div>
           </div>
         </div>
