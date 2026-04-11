@@ -960,10 +960,7 @@ const addApprovedCreator = async () => {
       { onConflict: "email" }
     );
 
-  if (error) {
-    showToastMsg("Toevoegen mislukt");
-    return;
-  }
+  showToastMsg("Toevoegen mislukt");
 
   setNewCreatorEmail("");
   showToastMsg("Monteur toegevoegd");
