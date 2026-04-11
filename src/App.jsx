@@ -2,10 +2,16 @@ import { useState, useEffect, useRef, useCallback } from "react";
 
 // ─── HELPERS ────────────────────────────────────────────────────────────
 const genId = () => Math.random().toString(36).substring(2,8);
-const genBusCode = () => "BUS-" + Math.random().toString(36).substring(2,6).toUpperCase();
+const genBusCode = () => "BUS" + Math.random().toString(36).substring(2,6).toUpperCase();
 const S = window.storage;
-const sGet = async (k,sh) => { try { const r = await S.get(k,sh); return r?JSON.parse(r.value):null; } catch{return null;} };
-const sSet = async (k,v,sh) => { try { await S.set(k,JSON.stringify(v),sh); } catch{} };
+const sGet = async (k, shared) => {
+  try { const r = await S.get(k, !!shared); return r && r.value ? JSON.parse(r.value) : null; }
+  catch(e) { return null; }
+};
+const sSet = async (k, v, shared) => {
+  try { const r = await S.set(k, JSON.stringify(v), !!shared); return !!r; }
+  catch(e) { return false; }
+};
 
 const LINKER_LADEN = {
   "Lade 1": [
@@ -494,10 +500,10 @@ export default function App() {
     (async () => {
       const sess = await sGet("my-session", false);
       if (sess) {
-        const bus = await sGet("bus-" + sess.busCode, true);
+        const bus = await sGet("bus_" + sess.busCode, true);
         if (bus && bus.members.some(m => m.id === sess.userId)) {
           setSession(sess); setBusInfo(bus);
-          const orders = await sGet("orders-" + sess.busCode, true);
+          const orders = await sGet("orders_" + sess.busCode, true);
           if (orders) setCart(orders);
         }
       }
@@ -507,9 +513,9 @@ export default function App() {
 
   const refreshData = useCallback(async () => {
     if (!session) return;
-    const orders = await sGet("orders-" + session.busCode, true);
+    const orders = await sGet("orders_" + session.busCode, true);
     if (orders) setCart(orders);
-    const bus = await sGet("bus-" + session.busCode, true);
+    const bus = await sGet("bus_" + session.busCode, true);
     if (bus) {
       setBusInfo(bus);
       if (!bus.members.some(m => m.id === session.userId)) {
@@ -525,14 +531,18 @@ export default function App() {
     return () => clearInterval(pollRef.current);
   }, [session, refreshData]);
 
-  const saveCart = async (nc) => { setCart(nc); if (session) await sSet("orders-" + session.busCode, nc, true); };
+  const saveCart = async (nc) => { setCart(nc); if (session) await sSet("orders_" + session.busCode, nc, true); };
 
   const createBus = async () => {
     if (!authName.trim() || !authBusName.trim()) { setAuthError("Vul alle velden in"); return; }
     const userId = genId(), code = genBusCode();
     const bus = { name: authBusName.trim(), code, monteurId: userId, members: [{ id: userId, name: authName.trim(), role: "monteur" }] };
-    await sSet("bus-" + code, bus, true);
-    await sSet("orders-" + code, [], true);
+    const ok1 = await sSet("bus_" + code, bus, true);
+    const ok2 = await sSet("orders_" + code, [], true);
+    if (!ok1 || !ok2) { setAuthError("Opslaan mislukt, probeer opnieuw"); return; }
+    // Verify write
+    const check = await sGet("bus_" + code, true);
+    if (!check) { setAuthError("Bus kon niet worden aangemaakt, probeer opnieuw"); return; }
     const sess = { userId, name: authName.trim(), busCode: code, role: "monteur" };
     await sSet("my-session", sess, false);
     setSession(sess); setBusInfo(bus); setCart([]);
@@ -540,24 +550,26 @@ export default function App() {
 
   const joinBus = async () => {
     if (!authName.trim() || !authCode.trim()) { setAuthError("Vul alle velden in"); return; }
-    const code = authCode.trim().toUpperCase();
-    const bus = await sGet("bus-" + code, true);
-    if (!bus) { setAuthError("Buscode niet gevonden"); return; }
-    if (bus.members.some(m => m.name.toLowerCase() === authName.trim().toLowerCase())) { setAuthError("Er is al iemand met deze naam"); return; }
+    const code = authCode.trim().toUpperCase().replace(/[^A-Z0-9]/g, "");
+    // Try shared first, then fallback
+    let bus = await sGet("bus_" + code, true);
+    if (!bus) bus = await sGet("bus_" + code, false);
+    if (!bus) { setAuthError("Buscode \"" + code + "\" niet gevonden. Controleer de code en probeer opnieuw."); return; }
+    if (bus.members.some(m => m.name.toLowerCase() === authName.trim().toLowerCase())) { setAuthError("Er is al iemand met deze naam in deze bus"); return; }
     const userId = genId();
     bus.members.push({ id: userId, name: authName.trim(), role: "hulpmonteur" });
-    await sSet("bus-" + code, bus, true);
+    await sSet("bus_" + code, bus, true);
     const sess = { userId, name: authName.trim(), busCode: code, role: "hulpmonteur" };
     await sSet("my-session", sess, false);
     setSession(sess); setBusInfo(bus);
-    const orders = await sGet("orders-" + code, true);
+    const orders = await sGet("orders_" + code, true);
     if (orders) setCart(orders);
   };
 
   const removeMember = async (mid) => {
     if (!busInfo || session.role !== "monteur") return;
     const u = { ...busInfo, members: busInfo.members.filter(m => m.id !== mid) };
-    await sSet("bus-" + busInfo.code, u, true);
+    await sSet("bus_" + busInfo.code, u, true);
     setBusInfo(u);
   };
 
@@ -614,7 +626,7 @@ export default function App() {
       <div className="auth-logo">Bonarius</div>
       {authScreen === "welcome" && <><div className="auth-title">Voorraadbeheer</div><div style={{textAlign:'center',color:'var(--text2)',fontSize:14,marginBottom:24}}>Beheer de voorraad in je bedrijfsbus samen met je team</div><button className="auth-btn auth-btn-primary" onClick={() => { setAuthScreen("create"); setAuthError(""); }}>🚐 Nieuwe bus aanmaken</button><div className="auth-divider">of</div><button className="auth-btn auth-btn-blue" onClick={() => { setAuthScreen("join"); setAuthError(""); }}>🔑 Deelnemen aan een bus</button></>}
       {authScreen === "create" && <><div className="auth-title">Bus aanmaken</div>{authError && <div className="auth-error">{authError}</div>}<input className="auth-input" placeholder="Jouw naam" value={authName} onChange={e => { setAuthName(e.target.value); setAuthError(""); }} /><input className="auth-input" placeholder="Naam van de bus (bijv. Movano Marchel)" value={authBusName} onChange={e => { setAuthBusName(e.target.value); setAuthError(""); }} /><button className="auth-btn auth-btn-primary" onClick={createBus}>Bus aanmaken</button><button className="auth-btn auth-btn-secondary" onClick={() => setAuthScreen("welcome")}>Terug</button><div className="auth-sub">Je ontvangt een buscode om te delen met je hulpmonteur</div></>}
-      {authScreen === "join" && <><div className="auth-title">Deelnemen</div>{authError && <div className="auth-error">{authError}</div>}<input className="auth-input" placeholder="Jouw naam" value={authName} onChange={e => { setAuthName(e.target.value); setAuthError(""); }} /><input className="auth-input" placeholder="Buscode (bijv. BUS-7X2K)" value={authCode} onChange={e => { setAuthCode(e.target.value.toUpperCase()); setAuthError(""); }} style={{fontFamily:'Space Mono, monospace',letterSpacing:2}} /><button className="auth-btn auth-btn-blue" onClick={joinBus}>Deelnemen</button><button className="auth-btn auth-btn-secondary" onClick={() => setAuthScreen("welcome")}>Terug</button><div className="auth-sub">Vraag de buscode aan je monteur</div></>}
+      {authScreen === "join" && <><div className="auth-title">Deelnemen</div>{authError && <div className="auth-error">{authError}</div>}<input className="auth-input" placeholder="Jouw naam" value={authName} onChange={e => { setAuthName(e.target.value); setAuthError(""); }} /><input className="auth-input" placeholder="Buscode (bijv. BUS7X2K)" value={authCode} onChange={e => { setAuthCode(e.target.value.toUpperCase()); setAuthError(""); }} style={{fontFamily:'Space Mono, monospace',letterSpacing:2}} /><button className="auth-btn auth-btn-blue" onClick={joinBus}>Deelnemen</button><button className="auth-btn auth-btn-secondary" onClick={() => setAuthScreen("welcome")}>Terug</button><div className="auth-sub">Vraag de buscode aan je monteur</div></>}
     </div></div></>
   );
 
