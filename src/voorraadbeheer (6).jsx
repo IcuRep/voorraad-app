@@ -411,7 +411,7 @@ body { background:var(--bg); color:var(--text); font-family:'DM Sans',sans-serif
 .side-card::after { content:''; position:absolute; bottom:0; left:0; right:0; height:3px; background:var(--accent); transform:scaleX(0); transition:transform .3s; }
 .side-card:hover::after { transform:scaleX(1); }
 .drawer-list { padding:0; }
-.shelf-wrap { width:100%; }
+.shelf-wrap { width:90%; margin:0 auto; }
 .shelf-title { font-size:11px; color:var(--text2); font-family:'Space Mono',monospace; letter-spacing:2px; text-transform:uppercase; text-align:center; margin-bottom:12px; }
 .shelf-cab { position:relative; background:linear-gradient(170deg,#1e2a38,var(--surface)); border:1px solid var(--border); border-radius:10px; }
 .shelf-top { height:14px; background:linear-gradient(180deg,#343e4e,#2a374a); border-radius:10px 10px 0 0; border-bottom:1px solid var(--border); position:relative; }
