@@ -1393,13 +1393,25 @@ const deleteApprovedCreatorForever = async (email) => {
   const cartCount = cart.reduce((s, c) => s + c.quantity, 0);
 
   const sendEmail = async () => {
-    if (cart.length === 0) return;
-    let body = `Beste,\n\nOnderstaande materialen komen uit de busvoorraad van ${busInfo?.name || "onze bus"}. Zou je deze kunnen bestellen op het project zodat we deze weer kunnen aanvullen?\n\n`;
-    cart.forEach(c => { body += `${c.quantity}x ${c.name} (${c.code})\n`; });
-    body += `\nVerzonden door: ${session?.name}`;
-    window.open(`mailto:?subject=Bestellijst ${busInfo?.name || "Bus"}&body=${encodeURIComponent(body)}`, '_self');
-    await clearCartAll(); setShowCart(false); showToastMsg("Bestellijst verzonden!");
-  };
+  if (cart.length === 0) return;
+
+  let body = `Beste,\n\nOnderstaande materialen komen uit mijn busvoorraad die ik heb gebruikt voor bovengenoemde project. Zou je deze kunnen bestellen op het project zodat ik deze weer kan aanvullen?\n\n`;
+
+  cart.forEach(c => {
+    body += `${c.quantity}x ${c.name} (${c.code})\n`;
+  });
+
+  body += `\nVerzonden door: ${session?.name}`;
+
+  window.open(
+    `mailto:?subject=${encodeURIComponent("Bestelling voor project")}&body=${encodeURIComponent(body)}`,
+    "_self"
+  );
+
+  await clearCartAll();
+  setShowCart(false);
+  showToastMsg("Bestellijst verzonden!");
+};
 
   const goSide = (s) => { setSide(s); setView(s); setSearch(""); };
   const goDrawer = (d) => { setDrawer(d); setView("drawer"); setSearch(""); };
