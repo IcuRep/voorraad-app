@@ -551,12 +551,6 @@ const [allBuses, setAllBuses] = useState([]);
         .eq("bus_code", sess.busCode);
 
       const members = memberError || !memberRows
-        ? []
-        : memberRows.map(m => ({
-            id: m.member_id,
-            name: m.name,
-            role: m.role,
-          }));
 
       setBusInfo({
         name: busRow.name,
@@ -602,11 +596,13 @@ const refreshData = useCallback(async () => {
     .eq("bus_code", session.busCode);
 
   if (busRow) {
-    const members = (memberRows || []).map(m => ({
-      id: m.member_id,
-      name: m.name,
-      role: m.role,
-    }));
+    const members = (memberRows || [])
+  .filter(m => m.active !== false)
+  .map(m => ({
+    id: m.member_id,
+    name: m.name,
+    role: m.role,
+  }));
 
     setBusInfo({
       name: busRow.name,
