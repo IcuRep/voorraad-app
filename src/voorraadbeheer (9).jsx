@@ -351,7 +351,7 @@ const RECHTER_LADEN = {
     { name: "Pijpnippel zwart ¾ x 60mm", code: "0190853", qty: 4, img: "https://pimassetsprdst.blob.core.windows.net/assets/apc_JPG300X300/49/37/11854937.jpg" },
     { name: "Pijpnippel zwart 1 x 60mm", code: "0190817", qty: 4, img: "https://pimassetsprdst.blob.core.windows.net/assets/apc_JPG300X300/49/37/11854937.jpg" },
   ],
-  "Lade 7": [],
+  "Lade 7": { _info: "🔨 Beugijzers" },
 };
 
 // ─── STYLES ─────────────────────────────────────────────────────────────
@@ -517,6 +517,60 @@ body { background:var(--bg); color:var(--text); font-family:'DM Sans',sans-serif
 .search-bar input { background:none; border:none; color:var(--text); font-size:14px; width:100%; outline:none; font-family:'DM Sans',sans-serif; }
 .search-bar input::placeholder { color:var(--text2); }
 .search-icon { color:var(--text2); font-size:16px; flex-shrink:0; }
+
+/* ── Responsive: tablets ── */
+@media (max-width: 768px) {
+  .shelf-linker, .shelf-rechter { width:95%; }
+  .shelf-col { padding:14px 12px 10px; }
+  .sdr { height:42px; }
+  .sdr-num { font-size:14px; left:8px; }
+  .sdr-lbl { font-size:11px; left:28px; }
+  .sdr-badge { font-size:9px; right:8px; padding:2px 6px; }
+  .sdr-handle { width:36px; height:9px; }
+  .sdr-handle::after { left:8px; right:8px; }
+  .shelf-col-label { font-size:9px; }
+}
+
+/* ── Responsive: phones ── */
+@media (max-width: 480px) {
+  .shelf-linker, .shelf-rechter { width:100%; }
+  .shelf-cab { border-radius:8px; }
+  .shelf-top { height:10px; border-radius:8px 8px 0 0; }
+  .shelf-col { padding:10px 8px 8px; }
+  .shelf-cols { gap:0; }
+  .shelf-open { height:22px; font-size:8px; margin-bottom:6px; }
+  .shelf-drawers { gap:3px; }
+  .shelf-rail { width:10px; }
+  .shelf-rail-m { width:6px; }
+  .sdr { height:38px; }
+  .sdr:hover { transform:translateX(6px); }
+  .sdr-num { font-size:13px; left:6px; opacity:0.8; }
+  .sdr-lbl { font-size:10px; left:24px; }
+  .sdr-badge { font-size:8px; right:6px; padding:2px 5px; }
+  .sdr-handle { width:30px; height:8px; }
+  .sdr-handle::after { left:6px; right:6px; height:2px; top:2px; }
+  .shelf-col-label { font-size:8px; letter-spacing:1px; margin-bottom:4px; }
+  .shelf-title { font-size:10px; letter-spacing:1px; margin-bottom:8px; }
+  .shelf-base { padding:0 8px; }
+  .shelf-leg { width:16px; height:12px; }
+  .title { font-size:16px; }
+  .user-badge { font-size:10px; }
+  .header { padding:14px 12px 12px; }
+  .header-top { margin-bottom:8px; }
+  .breadcrumb { font-size:11px; }
+}
+
+/* ── Responsive: very small phones ── */
+@media (max-width: 370px) {
+  .sdr { height:34px; }
+  .sdr-num { font-size:11px; left:5px; }
+  .sdr-lbl { font-size:9px; left:20px; }
+  .sdr-badge { font-size:7px; right:4px; padding:1px 4px; }
+  .sdr-handle { width:24px; height:7px; }
+  .shelf-col { padding:8px 6px 6px; }
+  .shelf-open { height:18px; font-size:7px; }
+  .shelf-col-label { font-size:7px; }
+}
 `;
 
 // ─── ICONS ──────────────────────────────────────────────────────────────
