@@ -1401,8 +1401,6 @@ const deleteApprovedCreatorForever = async (email) => {
     body += `${c.quantity}x ${c.name} (${c.code})\n`;
   });
 
-  body += `\nVerzonden door: ${session?.name}`;
-
   window.open(
     `mailto:?subject=${encodeURIComponent("Bestelling voor project")}&body=${encodeURIComponent(body)}`,
     "_self"
