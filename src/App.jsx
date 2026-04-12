@@ -411,7 +411,9 @@ body { background:var(--bg); color:var(--text); font-family:'DM Sans',sans-serif
 .side-card::after { content:''; position:absolute; bottom:0; left:0; right:0; height:3px; background:var(--accent); transform:scaleX(0); transition:transform .3s; }
 .side-card:hover::after { transform:scaleX(1); }
 .drawer-list { padding:0; }
-.shelf-wrap { width:90%; margin:0 auto; }
+.shelf-wrap { margin:0 auto; }
+.shelf-linker { width:90%; }
+.shelf-rechter { width:85%; }
 .shelf-title { font-size:11px; color:var(--text2); font-family:'Space Mono',monospace; letter-spacing:2px; text-transform:uppercase; text-align:center; margin-bottom:12px; }
 .shelf-cab { position:relative; background:linear-gradient(170deg,#1e2a38,var(--surface)); border:1px solid var(--border); border-radius:10px; }
 .shelf-top { height:14px; background:linear-gradient(180deg,#343e4e,#2a374a); border-radius:10px 10px 0 0; border-bottom:1px solid var(--border); position:relative; }
@@ -563,7 +565,7 @@ const ShelfView = ({ side, data, onOpenDrawer }) => {
 
   if (side === "rechter") {
     return (
-      <div className="shelf-wrap">
+      <div className="shelf-wrap shelf-rechter">
         <div className="shelf-title">7 laden • Knel / Malleabel / Las</div>
         <div className="shelf-cab sdr-single">
           <div className="shelf-top"/>
@@ -590,7 +592,7 @@ const ShelfView = ({ side, data, onOpenDrawer }) => {
   const rightEntries = entries.filter(([n]) => { const num = parseInt(n.replace("Lade ","")); return num > 7; });
 
   return (
-    <div className="shelf-wrap">
+    <div className="shelf-wrap shelf-linker">
       <div className="shelf-title">12 laden • Prestabo / Profipress / Gas</div>
       <div className="shelf-cab">
         <div className="shelf-top"/>
