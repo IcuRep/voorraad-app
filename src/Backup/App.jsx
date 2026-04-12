@@ -1,8 +1,10 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import { supabase } from "./supabase";
 
 // ─── HELPERS ────────────────────────────────────────────────────────────
 const genId = () => Math.random().toString(36).substring(2,8);
 const genBusCode = () => "BUS" + Math.random().toString(36).substring(2,6).toUpperCase();
+const genInviteCode = () => "INV" + Math.random().toString(36).substring(2,6).toUpperCase();
 
 const sGet = async (k, shared) => {
   try {
@@ -12,10 +14,20 @@ const sGet = async (k, shared) => {
 };
 const sSet = async (k, v, shared) => {
   try {
-    if (shared) await window.storage.set(k, JSON.stringify(v), true);
-    else await window.storage.set(k, JSON.stringify(v));
+    if (!window.storage || !window.storage.set) {
+      return "window.storage is niet beschikbaar";
+    }
+
+    if (shared) {
+      await window.storage.set(k, JSON.stringify(v), true);
+    } else {
+      await window.storage.set(k, JSON.stringify(v));
+    }
+
     return true;
-  } catch(e) { return String(e.message || e); }
+  } catch (e) {
+    return String(e.message || e);
+  }
 };
 
 const LINKER_LADEN = {
@@ -56,68 +68,68 @@ const LINKER_LADEN = {
   ],
   "Lade 2": [
     { name: "Insteekverloopsok PRESTABO 35x spie 42mm", code: "0556132", qty: 4, img: "https://pimassetsprdst.blob.core.windows.net/assets/apc_JPG300X300/52/91/11855291.jpg" },
-    { name: "Perssok Profipress koper 15x15mm", code: "0565001", qty: 6, img: "https://pimassetsprdst.blob.core.windows.net/assets/apc_JPG300X300/86/24/11858624.jpg" },
-    { name: "Perssok Profipress koper 22x22mm", code: "0565003", qty: 6, img: "https://pimassetsprdst.blob.core.windows.net/assets/apc_JPG300X300/86/26/11858626.jpg" },
-    { name: "Perssok Profipress koper 28x28mm", code: "0565004", qty: 6, img: "https://pimassetsprdst.blob.core.windows.net/assets/apc_JPG300X300/86/27/11858627.jpg" },
-    { name: "Perssok Profipress koper 35x35mm", code: "0565005", qty: 6, img: "https://pimassetsprdst.blob.core.windows.net/assets/apc_JPG300X300/86/28/11858628.jpg" },
-    { name: "Perssok Profipress koper 42x42mm", code: "0565006", qty: 4, img: "https://pimassetsprdst.blob.core.windows.net/assets/apc_JPG300X300/86/29/11858629.jpg" },
+    { name: "Perssok Profipress koper 15x15mm", code: "0565001", qty: 6, img: "https://pimassetsprdst.blob.core.windows.net/assets/apc_JPG300X300/38/56/18703856.jpg" },
+    { name: "Perssok Profipress koper 22x22mm", code: "0565003", qty: 6, img: "https://pimassetsprdst.blob.core.windows.net/assets/apc_JPG300X300/38/56/18703856.jpg" },
+    { name: "Perssok Profipress koper 28x28mm", code: "0565004", qty: 6, img: "https://pimassetsprdst.blob.core.windows.net/assets/apc_JPG300X300/38/56/18703856.jpg" },
+    { name: "Perssok Profipress koper 35x35mm", code: "0565005", qty: 6, img: "https://pimassetsprdst.blob.core.windows.net/assets/apc_JPG300X300/38/56/18703856.jpg" },
+    { name: "Perssok Profipress koper 42x42mm", code: "0565006", qty: 4, img: "https://pimassetsprdst.blob.core.windows.net/assets/apc_JPG300X300/38/56/18703856.jpg" },
     { name: "Bochtkoppeling 90° Profipress koper 15mm", code: "0565282", qty: 6, img: "https://pimassetsprdst.blob.core.windows.net/assets/apc_JPG300X300/38/41/18703841.jpg" },
     { name: "Bochtkoppeling 90° Profipress koper 22mm", code: "0565283", qty: 6, img: "https://pimassetsprdst.blob.core.windows.net/assets/apc_JPG300X300/87/65/11858765.jpg" },
     { name: "Bochtkoppeling 90° Profipress koper 28mm", code: "0565284", qty: 6, img: "https://pimassetsprdst.blob.core.windows.net/assets/apc_JPG300X300/87/66/11858766.jpg" },
     { name: "Bochtkoppeling 90° Profipress koper 35mm", code: "0565285", qty: 6, img: "https://pimassetsprdst.blob.core.windows.net/assets/apc_JPG300X300/87/67/11858767.jpg" },
     { name: "Bochtkoppeling 90° Profipress koper 42mm", code: "0565286", qty: 4, img: "https://pimassetsprdst.blob.core.windows.net/assets/apc_JPG300X300/87/68/11858768.jpg" },
-    { name: "Bochtkoppeling 45° Profipress koper 22mm", code: "0565363", qty: 6, img: "https://pimassetsprdst.blob.core.windows.net/assets/apc_JPG300X300/88/05/11858805.jpg" },
-    { name: "Bochtkoppeling 45° Profipress koper 28mm", code: "0565364", qty: 6, img: "https://pimassetsprdst.blob.core.windows.net/assets/apc_JPG300X300/88/06/11858806.jpg" },
-    { name: "Bochtkoppeling 45° Profipress koper 35mm", code: "0565365", qty: 6, img: "https://pimassetsprdst.blob.core.windows.net/assets/apc_JPG300X300/88/07/11858807.jpg" },
-    { name: "Bochtkoppeling 45° Profipress koper 42mm", code: "0565366", qty: 4, img: "https://pimassetsprdst.blob.core.windows.net/assets/apc_JPG300X300/88/08/11858808.jpg" },
-    { name: "T-koppeling Profipress koper 15x15x15mm", code: "0565472", qty: 6, img: "https://pimassetsprdst.blob.core.windows.net/assets/apc_JPG300X300/88/58/11858858.jpg" },
-    { name: "T-koppeling Profipress koper 22x22x22mm", code: "0565485", qty: 6, img: "https://pimassetsprdst.blob.core.windows.net/assets/apc_JPG300X300/88/58/11858858.jpg" },
-    { name: "T-koppeling Profipress koper 28x28x28mm", code: "0565497", qty: 4, img: "https://pimassetsprdst.blob.core.windows.net/assets/apc_JPG300X300/88/83/11858883.jpg" },
+    { name: "Bochtkoppeling 45° Profipress koper 22mm", code: "0565363", qty: 6, img: "https://pimassetsprdst.blob.core.windows.net/assets/apc_JPG300X300/38/50/18703850.jpg" },
+    { name: "Bochtkoppeling 45° Profipress koper 28mm", code: "0565364", qty: 6, img: "https://pimassetsprdst.blob.core.windows.net/assets/apc_JPG300X300/38/50/18703850.jpg" },
+    { name: "Bochtkoppeling 45° Profipress koper 35mm", code: "0565365", qty: 6, img: "https://pimassetsprdst.blob.core.windows.net/assets/apc_JPG300X300/38/50/18703850.jpg" },
+    { name: "Bochtkoppeling 45° Profipress koper 42mm", code: "0565366", qty: 4, img: "https://pimassetsprdst.blob.core.windows.net/assets/apc_JPG300X300/38/50/18703850.jpg" },
+    { name: "T-koppeling Profipress koper 15x15x15mm", code: "0565472", qty: 6, img: "https://pimassetsprdst.blob.core.windows.net/assets/apc_JPG300X300/38/47/18703847.jpg" },
+    { name: "T-koppeling Profipress koper 22x22x22mm", code: "0565485", qty: 6, img: "https://pimassetsprdst.blob.core.windows.net/assets/apc_JPG300X300/38/47/18703847.jpg" },
+    { name: "T-koppeling Profipress koper 28x28x28mm", code: "0565497", qty: 4, img: "https://pimassetsprdst.blob.core.windows.net/assets/apc_JPG300X300/38/47/18703847.jpg" },
   ],
   "Lade 3": [
-    { name: "T-koppeling Profipress koper 35x35x35mm", code: "0565506", qty: 4, img: "https://pimassetsprdst.blob.core.windows.net/assets/apc_JPG300X300/88/91/11858891.jpg" },
-    { name: "T-koppeling Profipress koper 42x42x42mm", code: "0565515", qty: 2, img: "https://pimassetsprdst.blob.core.windows.net/assets/apc_JPG300X300/89/00/11858900.jpg" },
-    { name: "Insteekverloopsok Profipress 15x12mm", code: "0565070", qty: 6, img: "https://pimassetsprdst.blob.core.windows.net/assets/apc_JPG300X300/86/63/11858663.jpg" },
-    { name: "Insteekverloopsok Profipress 22x15mm", code: "0565073", qty: 6, img: "https://pimassetsprdst.blob.core.windows.net/assets/apc_JPG300X300/86/66/11858666.jpg" },
-    { name: "Insteekverloopsok Profipress 28x22mm", code: "0565077", qty: 6, img: "https://pimassetsprdst.blob.core.windows.net/assets/apc_JPG300X300/86/70/11858670.jpg" },
-    { name: "Insteekverloopsok Profipress 35x28mm", code: "0565079", qty: 6, img: "https://pimassetsprdst.blob.core.windows.net/assets/apc_JPG300X300/86/72/11858672.jpg" },
-    { name: "Insteekverloopsok Profipress 42x35mm", code: "0565082", qty: 4, img: "https://pimassetsprdst.blob.core.windows.net/assets/apc_JPG300X300/86/75/11858675.jpg" },
-    { name: "Perssok verlopend Profipress 15x12mm", code: "0565020", qty: 6, img: "https://pimassetsprdst.blob.core.windows.net/assets/apc_JPG300X300/86/35/11858635.jpg" },
-    { name: "Perssok verlopend Profipress 22x15mm", code: "0565022", qty: 6, img: "https://pimassetsprdst.blob.core.windows.net/assets/apc_JPG300X300/86/37/11858637.jpg" },
-    { name: "Perssok verlopend Profipress 28x22mm", code: "0565024", qty: 6, img: "https://pimassetsprdst.blob.core.windows.net/assets/apc_JPG300X300/86/39/11858639.jpg" },
-    { name: "Perssok verlopend Profipress 35x28mm", code: "0565025", qty: 6, img: "https://pimassetsprdst.blob.core.windows.net/assets/apc_JPG300X300/86/40/11858640.jpg" },
-    { name: "Perssok verlopend Profipress 42x35mm", code: "0565026", qty: 4, img: "https://pimassetsprdst.blob.core.windows.net/assets/apc_JPG300X300/86/41/11858641.jpg" },
-    { name: "Puntstuk Sanpress brons 15x½ bt.", code: "0565193", qty: 6, img: "https://pimassetsprdst.blob.core.windows.net/assets/apc_JPG300X300/87/31/11858731.jpg" },
-    { name: "Puntstuk Sanpress brons 22x¾ bt.", code: "0565198", qty: 6, img: "https://pimassetsprdst.blob.core.windows.net/assets/apc_JPG300X300/87/36/11858736.jpg" },
-    { name: "Puntstuk Sanpress brons 22x1 bt.", code: "0565199", qty: 6, img: "https://pimassetsprdst.blob.core.windows.net/assets/apc_JPG300X300/87/37/11858737.jpg" },
-    { name: "Puntstuk Sanpress brons 28x¾ bt.", code: "0565200", qty: 6, img: "https://pimassetsprdst.blob.core.windows.net/assets/apc_JPG300X300/87/38/11858738.jpg" },
-    { name: "Puntstuk Sanpress brons 28x1 bt.", code: "0565201", qty: 6, img: "https://pimassetsprdst.blob.core.windows.net/assets/apc_JPG300X300/87/39/11858739.jpg" },
-    { name: "Puntstuk Sanpress brons 35x1 bt.", code: "0565203", qty: 6, img: "https://pimassetsprdst.blob.core.windows.net/assets/apc_JPG300X300/87/41/11858741.jpg" },
-    { name: "Puntstuk Sanpress brons 35x1¼ bt.", code: "0565204", qty: 4, img: "https://pimassetsprdst.blob.core.windows.net/assets/apc_JPG300X300/87/42/11858742.jpg" },
-    { name: "Schroefbus recht Sanpress 15x½ bn.", code: "0565113", qty: 6, img: "https://pimassetsprdst.blob.core.windows.net/assets/apc_JPG300X300/86/92/11858692.jpg" },
-    { name: "Schroefbus recht Sanpress 22x½ bn.", code: "0565117", qty: 6, img: "https://pimassetsprdst.blob.core.windows.net/assets/apc_JPG300X300/86/96/11858696.jpg" },
-    { name: "Schroefbus recht Sanpress 22x¾ bn.", code: "0565118", qty: 6, img: "https://pimassetsprdst.blob.core.windows.net/assets/apc_JPG300X300/86/97/11858697.jpg" },
-    { name: "Schroefbus recht Sanpress 28x¾ bn.", code: "0565121", qty: 6, img: "https://pimassetsprdst.blob.core.windows.net/assets/apc_JPG300X300/87/00/11858700.jpg" },
-    { name: "Schroefbus recht Sanpress 28x1 bn.", code: "0565122", qty: 6, img: "https://pimassetsprdst.blob.core.windows.net/assets/apc_JPG300X300/87/01/11858701.jpg" },
-    { name: "Schroefbus recht Sanpress 35x1 bn.", code: "0565125", qty: 6, img: "https://pimassetsprdst.blob.core.windows.net/assets/apc_JPG300X300/87/04/11858704.jpg" },
-    { name: "Schroefbus recht Sanpress 35x1¼ bn.", code: "0565126", qty: 6, img: "https://pimassetsprdst.blob.core.windows.net/assets/apc_JPG300X300/87/05/11858705.jpg" },
+    { name: "T-koppeling Profipress koper 35x35x35mm", code: "0565506", qty: 4, img: "https://pimassetsprdst.blob.core.windows.net/assets/apc_JPG300X300/38/47/18703847.jpg" },
+    { name: "T-koppeling Profipress koper 42x42x42mm", code: "0565515", qty: 2, img: "https://pimassetsprdst.blob.core.windows.net/assets/apc_JPG300X300/38/47/18703847.jpg" },
+    { name: "Insteekverloopsok Profipress 15x12mm", code: "0565070", qty: 6, img: "https://pimassetsprdst.blob.core.windows.net/assets/apc_JPG300X300/38/66/18703866.jpg" },
+    { name: "Insteekverloopsok Profipress 22x15mm", code: "0565073", qty: 6, img: "https://pimassetsprdst.blob.core.windows.net/assets/apc_JPG300X300/38/66/18703866.jpg" },
+    { name: "Insteekverloopsok Profipress 28x22mm", code: "0565077", qty: 6, img: "https://pimassetsprdst.blob.core.windows.net/assets/apc_JPG300X300/38/66/18703866.jpg" },
+    { name: "Insteekverloopsok Profipress 35x28mm", code: "0565079", qty: 6, img: "https://pimassetsprdst.blob.core.windows.net/assets/apc_JPG300X300/38/66/18703866.jpg" },
+    { name: "Insteekverloopsok Profipress 42x35mm", code: "0565082", qty: 4, img: "https://pimassetsprdst.blob.core.windows.net/assets/apc_JPG300X300/38/66/18703866.jpg" },
+    { name: "Perssok verlopend Profipress 15x12mm", code: "0565020", qty: 6, img: "https://pimassetsprdst.blob.core.windows.net/assets/apc_JPG300X300/39/22/18703922.jpg" },
+    { name: "Perssok verlopend Profipress 22x15mm", code: "0565022", qty: 6, img: "https://pimassetsprdst.blob.core.windows.net/assets/apc_JPG300X300/39/22/18703922.jpg" },
+    { name: "Perssok verlopend Profipress 28x22mm", code: "0565024", qty: 6, img: "https://pimassetsprdst.blob.core.windows.net/assets/apc_JPG300X300/39/22/18703922.jpg" },
+    { name: "Perssok verlopend Profipress 35x28mm", code: "0565025", qty: 6, img: "https://pimassetsprdst.blob.core.windows.net/assets/apc_JPG300X300/39/22/18703922.jpg" },
+    { name: "Perssok verlopend Profipress 42x35mm", code: "0565026", qty: 4, img: "https://pimassetsprdst.blob.core.windows.net/assets/apc_JPG300X300/39/22/18703922.jpg" },
+    { name: "Puntstuk Sanpress brons 15x½ bt.", code: "0565193", qty: 6, img: "https://pimassetsprdst.blob.core.windows.net/assets/apc_JPG300X300/33/45/18703345.jpg" },
+    { name: "Puntstuk Sanpress brons 22x¾ bt.", code: "0565198", qty: 6, img: "https://pimassetsprdst.blob.core.windows.net/assets/apc_JPG300X300/33/45/18703345.jpg" },
+    { name: "Puntstuk Sanpress brons 22x1 bt.", code: "0565199", qty: 6, img: "https://pimassetsprdst.blob.core.windows.net/assets/apc_JPG300X300/33/45/18703345.jpg" },
+    { name: "Puntstuk Sanpress brons 28x¾ bt.", code: "0565200", qty: 6, img: "https://pimassetsprdst.blob.core.windows.net/assets/apc_JPG300X300/33/45/18703345.jpg" },
+    { name: "Puntstuk Sanpress brons 28x1 bt.", code: "0565201", qty: 6, img: "https://pimassetsprdst.blob.core.windows.net/assets/apc_JPG300X300/33/45/18703345.jpg" },
+    { name: "Puntstuk Sanpress brons 35x1 bt.", code: "0565203", qty: 6, img: "https://pimassetsprdst.blob.core.windows.net/assets/apc_JPG300X300/33/45/18703345.jpg" },
+    { name: "Puntstuk Sanpress brons 35x1¼ bt.", code: "0565204", qty: 4, img: "https://pimassetsprdst.blob.core.windows.net/assets/apc_JPG300X300/33/45/18703345.jpg" },
+    { name: "Schroefbus recht Sanpress 15x½ bn.", code: "0565113", qty: 6, img: "https://pimassetsprdst.blob.core.windows.net/assets/apc_JPG300X300/34/10/18703410.jpg" },
+    { name: "Schroefbus recht Sanpress 22x½ bn.", code: "0565117", qty: 6, img: "https://pimassetsprdst.blob.core.windows.net/assets/apc_JPG300X300/34/10/18703410.jpg" },
+    { name: "Schroefbus recht Sanpress 22x¾ bn.", code: "0565118", qty: 6, img: "https://pimassetsprdst.blob.core.windows.net/assets/apc_JPG300X300/34/10/18703410.jpg" },
+    { name: "Schroefbus recht Sanpress 28x¾ bn.", code: "0565121", qty: 6, img: "https://pimassetsprdst.blob.core.windows.net/assets/apc_JPG300X300/34/10/18703410.jpg" },
+    { name: "Schroefbus recht Sanpress 28x1 bn.", code: "0565122", qty: 6, img: "https://pimassetsprdst.blob.core.windows.net/assets/apc_JPG300X300/34/10/18703410.jpg" },
+    { name: "Schroefbus recht Sanpress 35x1 bn.", code: "0565125", qty: 6, img: "https://pimassetsprdst.blob.core.windows.net/assets/apc_JPG300X300/34/10/18703410.jpg" },
+    { name: "Schroefbus recht Sanpress 35x1¼ bn.", code: "0565126", qty: 6, img: "https://pimassetsprdst.blob.core.windows.net/assets/apc_JPG300X300/34/10/18703410.jpg" },
   ],
   "Lade 4": [
-    { name: "Perssok Profipress Gas 15x15mm", code: "0566001", qty: 6, img: "https://pimassetsprdst.blob.core.windows.net/assets/apc_JPG300X300/92/34/11859234.jpg" },
-    { name: "Perssok Profipress Gas 22x22mm", code: "0566003", qty: 6, img: "https://pimassetsprdst.blob.core.windows.net/assets/apc_JPG300X300/92/36/11859236.jpg" },
-    { name: "Perssok Profipress Gas 28x28mm", code: "0566004", qty: 6, img: "https://pimassetsprdst.blob.core.windows.net/assets/apc_JPG300X300/92/37/11859237.jpg" },
-    { name: "Perssok Profipress Gas 35x35mm", code: "0566005", qty: 6, img: "https://pimassetsprdst.blob.core.windows.net/assets/apc_JPG300X300/92/38/11859238.jpg" },
-    { name: "Perssok Profipress Gas 42x42mm", code: "0566006", qty: 4, img: "https://pimassetsprdst.blob.core.windows.net/assets/apc_JPG300X300/92/39/11859239.jpg" },
-    { name: "Bochtkoppeling 90° Gas 15x15mm", code: "0566121", qty: 6, img: "https://pimassetsprdst.blob.core.windows.net/assets/apc_JPG300X300/92/98/11859298.jpg" },
-    { name: "Bochtkoppeling 90° Gas 22x22mm", code: "0566123", qty: 6, img: "https://pimassetsprdst.blob.core.windows.net/assets/apc_JPG300X300/93/00/11859300.jpg" },
-    { name: "Bochtkoppeling 90° Gas 28x28mm", code: "0566124", qty: 6, img: "https://pimassetsprdst.blob.core.windows.net/assets/apc_JPG300X300/93/01/11859301.jpg" },
-    { name: "Bochtkoppeling 90° Gas 35x35mm", code: "0566125", qty: 6, img: "https://pimassetsprdst.blob.core.windows.net/assets/apc_JPG300X300/93/02/11859302.jpg" },
-    { name: "Bochtkoppeling 90° Gas 42x42mm", code: "0566126", qty: 4, img: "https://pimassetsprdst.blob.core.windows.net/assets/apc_JPG300X300/93/03/11859303.jpg" },
-    { name: "T-koppeling Gas 15x15x15mm", code: "0566242", qty: 6, img: "https://pimassetsprdst.blob.core.windows.net/assets/apc_JPG300X300/93/54/11859354.jpg" },
-    { name: "T-koppeling Gas 22x22x22mm", code: "0566248", qty: 6, img: "https://pimassetsprdst.blob.core.windows.net/assets/apc_JPG300X300/93/60/11859360.jpg" },
-    { name: "T-koppeling Gas 28x28x28mm", code: "0566255", qty: 4, img: "https://pimassetsprdst.blob.core.windows.net/assets/apc_JPG300X300/93/67/11859367.jpg" },
-    { name: "T-koppeling Gas 35x35x35mm", code: "0566259", qty: 4, img: "https://pimassetsprdst.blob.core.windows.net/assets/apc_JPG300X300/93/71/11859371.jpg" },
-    { name: "T-koppeling Gas 42x42x42mm", code: "0566262", qty: 2, img: "https://pimassetsprdst.blob.core.windows.net/assets/apc_JPG300X300/93/74/11859374.jpg" },
+    { name: "Perssok Profipress Gas 15x15mm", code: "0566001", qty: 6, img: "https://pimassetsprdst.blob.core.windows.net/assets/apc_JPG300X300/39/75/18703975.jpg" },
+    { name: "Perssok Profipress Gas 22x22mm", code: "0566003", qty: 6, img: "https://pimassetsprdst.blob.core.windows.net/assets/apc_JPG300X300/39/75/18703975.jpg" },
+    { name: "Perssok Profipress Gas 28x28mm", code: "0566004", qty: 6, img: "https://pimassetsprdst.blob.core.windows.net/assets/apc_JPG300X300/39/75/18703975.jpg" },
+    { name: "Perssok Profipress Gas 35x35mm", code: "0566005", qty: 6, img: "https://pimassetsprdst.blob.core.windows.net/assets/apc_JPG300X300/39/75/18703975.jpg" },
+    { name: "Perssok Profipress Gas 42x42mm", code: "0566006", qty: 4, img: "https://pimassetsprdst.blob.core.windows.net/assets/apc_JPG300X300/39/75/18703975.jpg" },
+    { name: "Bochtkoppeling 90° Gas 15x15mm", code: "0566121", qty: 6, img: "https://pimassetsprdst.blob.core.windows.net/assets/apc_JPG300X300/39/45/18703945.jpg" },
+    { name: "Bochtkoppeling 90° Gas 22x22mm", code: "0566123", qty: 6, img: "https://pimassetsprdst.blob.core.windows.net/assets/apc_JPG300X300/39/45/18703945.jpg" },
+    { name: "Bochtkoppeling 90° Gas 28x28mm", code: "0566124", qty: 6, img: "https://pimassetsprdst.blob.core.windows.net/assets/apc_JPG300X300/39/45/18703945.jpg" },
+    { name: "Bochtkoppeling 90° Gas 35x35mm", code: "0566125", qty: 6, img: "https://pimassetsprdst.blob.core.windows.net/assets/apc_JPG300X300/39/45/18703945.jpg" },
+    { name: "Bochtkoppeling 90° Gas 42x42mm", code: "0566126", qty: 4, img: "https://pimassetsprdst.blob.core.windows.net/assets/apc_JPG300X300/39/45/18703945.jpg" },
+    { name: "T-koppeling Gas 15x15x15mm", code: "0566242", qty: 6, img: "https://pimassetsprdst.blob.core.windows.net/assets/apc_JPG300X300/39/63/18703963.jpg" },
+    { name: "T-koppeling Gas 22x22x22mm", code: "0566248", qty: 6, img: "https://pimassetsprdst.blob.core.windows.net/assets/apc_JPG300X300/39/63/18703963.jpg" },
+    { name: "T-koppeling Gas 28x28x28mm", code: "0566255", qty: 4, img: "https://pimassetsprdst.blob.core.windows.net/assets/apc_JPG300X300/39/63/18703963.jpg" },
+    { name: "T-koppeling Gas 35x35x35mm", code: "0566259", qty: 4, img: "https://pimassetsprdst.blob.core.windows.net/assets/apc_JPG300X300/39/63/18703963.jpg" },
+    { name: "T-koppeling Gas 42x42x42mm", code: "0566262", qty: 2, img: "https://pimassetsprdst.blob.core.windows.net/assets/apc_JPG300X300/39/63/18703963.jpg" },
   ],
   "Lade 5": [
     { name: "Insteekverloopsok Gas 15x12mm", code: "0566040", qty: 6, img: "https://pimassetsprdst.blob.core.windows.net/assets/apc_JPG300X300/92/48/11859248.jpg" },
@@ -125,9 +137,9 @@ const LINKER_LADEN = {
     { name: "Insteekverloopsok Gas 28x22mm", code: "0566046", qty: 6, img: "https://pimassetsprdst.blob.core.windows.net/assets/apc_JPG300X300/92/54/11859254.jpg" },
     { name: "Insteekverloopsok Gas 35x28mm", code: "0566048", qty: 6, img: "https://pimassetsprdst.blob.core.windows.net/assets/apc_JPG300X300/92/56/11859256.jpg" },
     { name: "Insteekverloopsok Gas 42x35mm", code: "0566051", qty: 4, img: "https://pimassetsprdst.blob.core.windows.net/assets/apc_JPG300X300/92/59/11859259.jpg" },
-    { name: "Puntstuk Gas brons 15x½ bt.", code: "0566092", qty: 6, img: "https://pimassetsprdst.blob.core.windows.net/assets/apc_JPG300X300/92/79/11859279.jpg" },
-    { name: "Puntstuk Gas brons 22x¾ bt.", code: "0566097", qty: 6, img: "https://pimassetsprdst.blob.core.windows.net/assets/apc_JPG300X300/92/84/11859284.jpg" },
-    { name: "Puntstuk Gas brons 28x1 bt.", code: "0566100", qty: 6, img: "https://pimassetsprdst.blob.core.windows.net/assets/apc_JPG300X300/92/87/11859287.jpg" },
+    { name: "Puntstuk Gas brons 15x½ bt.", code: "0566092", qty: 6, img: "https://pimassetsprdst.blob.core.windows.net/assets/apc_JPG300X300/39/66/18703966.jpg" },
+    { name: "Puntstuk Gas brons 22x¾ bt.", code: "0566097", qty: 6, img: "https://pimassetsprdst.blob.core.windows.net/assets/apc_JPG300X300/39/66/18703966.jpg" },
+    { name: "Puntstuk Gas brons 28x1 bt.", code: "0566100", qty: 6, img: "https://pimassetsprdst.blob.core.windows.net/assets/apc_JPG300X300/39/66/18703966.jpg" },
     { name: "Knelring Super Blue 22mm ⅜ dikw.", code: "0558395", qty: 6, img: "https://pimassetsprdst.blob.core.windows.net/assets/apc_JPG300X300/63/45/26256345.jpg" },
     { name: "Knelring Super Blue 22mm ½ dikw.", code: "0557820", qty: 6, img: "https://pimassetsprdst.blob.core.windows.net/assets/apc_JPG300X300/63/45/26256345.jpg" },
     { name: "Knelring Super Blue 28mm ¾ dikw.", code: "0557822", qty: 6, img: "https://pimassetsprdst.blob.core.windows.net/assets/apc_JPG300X300/63/45/26256345.jpg" },
@@ -184,8 +196,8 @@ const LINKER_LADEN = {
     { name: "Klemset ½x15mm HERZ", code: "0530160", qty: 10, img: "https://pimassetsprdst.blob.core.windows.net/assets/apc_JPG300X300/64/28/11846428.jpg" },
     { name: "Klemset staal/CU ½x15mm Danfoss", code: "0530402", qty: 10, img: "https://pimassetsprdst.blob.core.windows.net/assets/apc_JPG300X300/58/60/56805860.jpg" },
     { name: "Klemset ½x15mm IMI Heimeier", code: "0531121", qty: 10, img: "https://pimassetsprdst.blob.core.windows.net/assets/apc_JPG300X300/97/64/50039764.jpg" },
-    { name: "RA afsluiter handbed. recht ⅜ HERZ", code: "0530001", qty: 2, img: "https://pimassetsprdst.blob.core.windows.net/assets/apc_JPG300X300/21/20/18632120.jpg" },
-    { name: "RA afsluiter handbed. haaks ⅜ HERZ", code: "0530006", qty: 2, img: "https://pimassetsprdst.blob.core.windows.net/assets/apc_JPG300X300/21/30/18632130.jpg" },
+    { name: "RA afsluiter handbed. recht ⅜ HERZ", code: "0530001", qty: 2, img: "https://pimassetsprdst.blob.core.windows.net/assets/apc_JPG300X300/63/25/11846325.jpg" },
+    { name: "RA afsluiter handbed. haaks ⅜ HERZ", code: "0530006", qty: 2, img: "https://pimassetsprdst.blob.core.windows.net/assets/apc_JPG300X300/63/25/11846325.jpg" },
     { name: "RA afsluiter handbed. recht ½ HERZ", code: "0530002", qty: 2, img: "https://pimassetsprdst.blob.core.windows.net/assets/apc_JPG300X300/63/26/11846326.jpg" },
     { name: "RA afsluiter handbed. haaks ½ HERZ", code: "0530007", qty: 2, img: "https://pimassetsprdst.blob.core.windows.net/assets/apc_JPG300X300/63/34/11846334.jpg" },
     { name: "RA afsluiter handbed. recht ¾ HERZ", code: "0530003", qty: 2, img: "https://pimassetsprdst.blob.core.windows.net/assets/apc_JPG300X300/63/28/11846328.jpg" },
@@ -373,6 +385,7 @@ body { background:var(--bg); color:var(--text); font-family:'DM Sans',sans-serif
 .member-name { font-weight:500; }
 .member-role { font-size:12px; color:var(--text2); font-family:'Space Mono',monospace; }
 .member-remove { background:none; border:1px solid var(--danger); color:var(--danger); padding:6px 12px; border-radius:8px; font-size:12px; cursor:pointer; font-family:'DM Sans',sans-serif; }
+.member-activate { background:none; border:1px solid var(--success); color:var(--success); padding:6px 12px; border-radius:8px; font-size:12px; cursor:pointer; font-family:'DM Sans',sans-serif; }
 .header { background:linear-gradient(135deg,#0f2027,#203a43,#2c5364); padding:20px 16px 16px; position:sticky; top:0; z-index:50; border-bottom:1px solid var(--border); }
 .header-top { display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
 .logo-text { font-family:'Space Mono',monospace; font-size:11px; letter-spacing:3px; text-transform:uppercase; color:var(--accent); }
@@ -482,8 +495,10 @@ export default function App() {
   const [busInfo, setBusInfo] = useState(null);
   const [authScreen, setAuthScreen] = useState("welcome");
   const [authName, setAuthName] = useState("");
+  const [authEmail, setAuthEmail] = useState("");
   const [authBusName, setAuthBusName] = useState("");
   const [authCode, setAuthCode] = useState("");
+  const [authPassword, setAuthPassword] = useState("");
   const [authError, setAuthError] = useState("");
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState("home");
@@ -493,6 +508,17 @@ export default function App() {
   const [showCart, setShowCart] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showGlobalSearch, setShowGlobalSearch] = useState(false);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [latestInviteCode, setLatestInviteCode] = useState("");
+  const [approvedCreators, setApprovedCreators] = useState([]);
+  const [newCreatorEmail, setNewCreatorEmail] = useState("");
+  const [isMainAdmin, setIsMainAdmin] = useState(false);
+  const [allBusMembers, setAllBusMembers] = useState([]);
+  const [allBuses, setAllBuses] = useState([]);
+  const [reloginBusCode, setReloginBusCode] = useState("");
+  const [reloginPassword, setReloginPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmNewPassword, setConfirmNewPassword] = useState("");
   const [modal, setModal] = useState(null);
   const [qty, setQty] = useState(1);
   const [toast, setToast] = useState(null);
@@ -502,85 +528,862 @@ export default function App() {
   const pollRef = useRef(null);
 
   useEffect(() => {
-    (async () => {
-      const sess = await sGet("my-session", false);
-      if (sess) {
-        const bus = await sGet("bus_" + sess.busCode, true);
-        if (bus && bus.members.some(m => m.id === sess.userId)) {
-          setSession(sess); setBusInfo(bus);
-          const orders = await sGet("orders_" + sess.busCode, true);
-          if (orders) setCart(orders);
-        }
+  (async () => {
+    try {
+      const raw = localStorage.getItem("my-session");
+      const sess = raw ? JSON.parse(raw) : null;
+
+      if (!sess) {
+        setLoading(false);
+        return;
       }
+
+      setSession(sess);
+
+      const { data: busRow, error: busError } = await supabase
+        .from("buses")
+        .select("*")
+        .eq("code", sess.busCode)
+        .maybeSingle();
+
+      if (busError || !busRow) {
+        setLoading(false);
+        return;
+      }
+
+      const { data: memberRows, error: memberError } = await supabase
+        .from("bus_members")
+        .select("*")
+        .eq("bus_code", sess.busCode);
+
+      const members = memberError || !memberRows
+        ? []
+        : memberRows
+            .filter(m => m.active !== false)
+            .map(m => ({
+              id: m.member_id,
+              name: m.name,
+              role: m.role,
+            }));
+
+      setBusInfo({
+        name: busRow.name,
+        code: busRow.code,
+        ownerEmail: busRow.owner_email,
+        members,
+      });
+
+      const { data: orderRow } = await supabase
+        .from("bus_orders")
+        .select("*")
+        .eq("bus_code", sess.busCode)
+        .maybeSingle();
+
+      setCart(orderRow?.items || []);
       setLoading(false);
-    })();
-  }, []);
-
-  const refreshData = useCallback(async () => {
-    if (!session) return;
-    const orders = await sGet("orders_" + session.busCode, true);
-    if (orders) setCart(orders);
-    const bus = await sGet("bus_" + session.busCode, true);
-    if (bus) {
-      setBusInfo(bus);
-      if (!bus.members.some(m => m.id === session.userId)) {
-        setSession(null); setBusInfo(null); setCart([]);
-        try { await window.storage.delete("my-session", false); } catch {}
-      }
+    } catch (e) {
+      setLoading(false);
     }
-  }, [session]);
+  })();
+}, []);
 
-  useEffect(() => {
-    if (!session) return;
-    pollRef.current = setInterval(refreshData, 8000);
-    return () => clearInterval(pollRef.current);
-  }, [session, refreshData]);
+const refreshData = useCallback(async () => {
+  if (!session) return;
 
-  const saveCart = async (nc) => { setCart(nc); if (session) await sSet("orders_" + session.busCode, nc, true); };
+  const { data: orderRow } = await supabase
+    .from("bus_orders")
+    .select("*")
+    .eq("bus_code", session.busCode)
+    .maybeSingle();
 
-  const createBus = async () => {
-    if (!authName.trim() || !authBusName.trim()) { setAuthError("Vul alle velden in"); return; }
-    const userId = genId(), code = genBusCode();
-    const bus = { name: authBusName.trim(), code, monteurId: userId, members: [{ id: userId, name: authName.trim(), role: "monteur" }] };
-    const r1 = await sSet("bus_" + code, bus, true);
-    const r2 = await sSet("orders_" + code, [], true);
-    if (r1 !== true || r2 !== true) { setAuthError("Opslaan mislukt: " + (r1 !== true ? r1 : r2)); return; }
-    const sess = { userId, name: authName.trim(), busCode: code, role: "monteur" };
-    await sSet("my-session", sess, false);
-    setSession(sess); setBusInfo(bus); setCart([]);
+  setCart(orderRow?.items || []);
+
+  const { data: busRow } = await supabase
+    .from("buses")
+    .select("*")
+    .eq("code", session.busCode)
+    .maybeSingle();
+
+  const { data: memberRows } = await supabase
+    .from("bus_members")
+    .select("*")
+    .eq("bus_code", session.busCode);
+
+  const members = (memberRows || [])
+    .filter(m => m.active !== false)
+    .map(m => ({
+      id: m.member_id,
+      name: m.name,
+      role: m.role,
+    }));
+
+  if (!busRow || !members.some(m => m.id === session.userId)) {
+    localStorage.removeItem("my-session");
+    setSession(null);
+    setBusInfo(null);
+    setCart([]);
+    setShowSettings(false);
+    return;
+  }
+
+  setBusInfo({
+    name: busRow.name,
+    code: busRow.code,
+    ownerEmail: busRow.owner_email,
+    members,
+  });
+}, [session]);
+
+useEffect(() => {
+  if (!session) return;
+  pollRef.current = setInterval(refreshData, 3000);
+  return () => clearInterval(pollRef.current);
+}, [session, refreshData]);
+
+const saveCart = async (nc) => {
+  setCart(nc);
+
+  if (!session) return;
+
+  await supabase
+    .from("bus_orders")
+    .update({
+      items: nc,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("bus_code", session.busCode);
+};
+
+const createBus = async () => {
+  const name = authName.trim();
+  const email = authEmail.trim().toLowerCase();
+  const busName = authBusName.trim();
+  const password = authPassword.trim();
+
+  if (!name || !email || !busName || !password) {
+    setAuthError("Vul alle velden in");
+    return;
+  }
+
+  if (password.length < 6) {
+    setAuthError("Wachtwoord moet minimaal 6 tekens bevatten");
+    return;
+  }
+
+  const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  if (!emailOk) {
+    setAuthError("Vul een geldig e-mailadres in");
+    return;
+  }
+
+  const { data: adminRow, error: adminError } = await supabase
+    .from("admin_users")
+    .select("email, role")
+    .eq("email", email)
+    .maybeSingle();
+
+  if (adminError) {
+    setAuthError("Controle van beheerder mislukt");
+    return;
+  }
+
+  const { data: creatorRow, error: creatorError } = await supabase
+    .from("approved_creators")
+    .select("email, active, single_use, used_at")
+    .eq("email", email)
+    .eq("active", true)
+    .maybeSingle();
+
+  if (creatorError) {
+    setAuthError("Controle van toegestane e-mail mislukt");
+    return;
+  }
+
+  const isAllowed = !!adminRow || !!creatorRow;
+
+  if (!isAllowed) {
+    setAuthError("Dit e-mailadres is niet gemachtigd om een nieuwe bus aan te maken");
+    return;
+  }
+
+  if (creatorRow?.single_use && creatorRow?.used_at) {
+    setAuthError("Dit e-mailadres is al gebruikt om een bus aan te maken");
+    return;
+  }
+
+  const userId = genId();
+  const code = genBusCode();
+
+  const { error: busInsertError } = await supabase
+  .from("buses")
+  .insert({
+    code,
+    name: busName,
+    owner_email: email,
+    owner_name: name,
+    login_password: password,
+  });
+
+  if (busInsertError) {
+    setAuthError("Bus opslaan mislukt");
+    return;
+  }
+
+  if (creatorRow?.single_use) {
+    await supabase
+      .from("approved_creators")
+      .update({
+        used_at: new Date().toISOString(),
+        used_by_bus_code: code,
+      })
+      .eq("email", email);
+  }
+
+  const { error: memberInsertError } = await supabase
+    .from("bus_members")
+    .insert({
+      bus_code: code,
+      member_id: userId,
+      name,
+      role: "monteur",
+    });
+
+  if (memberInsertError) {
+    setAuthError("Buslid opslaan mislukt");
+    return;
+  }
+
+  const { error: orderInsertError } = await supabase
+    .from("bus_orders")
+    .insert({
+      bus_code: code,
+      items: [],
+    });
+
+  if (orderInsertError) {
+    setAuthError("Bestellijst aanmaken mislukt");
+    return;
+  }
+
+  const sess = {
+    userId,
+    name,
+    email,
+    busCode: code,
+    role: "monteur",
   };
 
-  const joinBus = async () => {
-    if (!authName.trim() || !authCode.trim()) { setAuthError("Vul alle velden in"); return; }
-    const code = authCode.trim().toUpperCase().replace(/[^A-Z0-9]/g, "");
-    // Try shared first, then fallback
-    let bus = await sGet("bus_" + code, true);
-    if (!bus) bus = await sGet("bus_" + code, false);
-    if (!bus) { setAuthError("Buscode \"" + code + "\" niet gevonden. Controleer de code en probeer opnieuw."); return; }
-    if (bus.members.some(m => m.name.toLowerCase() === authName.trim().toLowerCase())) { setAuthError("Er is al iemand met deze naam in deze bus"); return; }
-    const userId = genId();
-    bus.members.push({ id: userId, name: authName.trim(), role: "hulpmonteur" });
-    await sSet("bus_" + code, bus, true);
-    const sess = { userId, name: authName.trim(), busCode: code, role: "hulpmonteur" };
-    await sSet("my-session", sess, false);
-    setSession(sess); setBusInfo(bus);
-    const orders = await sGet("orders_" + code, true);
-    if (orders) setCart(orders);
+  localStorage.setItem("my-session", JSON.stringify(sess));
+
+  setSession(sess);
+  setBusInfo({
+    name: busName,
+    code,
+    ownerEmail: email,
+    members: [{ id: userId, name, role: "monteur" }],
+  });
+  setCart([]);
+  setAuthPassword("");
+  setAuthError("");
+};
+
+const joinBus = async () => {
+  const name = authName.trim();
+  const inviteCode = authCode.trim().toUpperCase().replace(/[^A-Z0-9]/g, "");
+
+  if (!name || !inviteCode) {
+    setAuthError("Vul alle velden in");
+    return;
+  }
+
+  const { data: inviteRow, error: inviteError } = await supabase
+    .from("invite_codes")
+    .select("*")
+    .eq("invite_code", inviteCode)
+    .eq("is_used", false)
+    .maybeSingle();
+
+  if (inviteError || !inviteRow) {
+    setAuthError(`Uitnodigingscode "${inviteCode}" is niet geldig of is al gebruikt.`);
+    return;
+  }
+
+  const busCode = inviteRow.bus_code;
+
+  const { data: busRow, error: busError } = await supabase
+    .from("buses")
+    .select("*")
+    .eq("code", busCode)
+    .maybeSingle();
+
+  if (busError || !busRow) {
+    setAuthError("Bus niet gevonden");
+    return;
+  }
+
+  const { data: memberRows, error: memberError } = await supabase
+    .from("bus_members")
+    .select("*")
+    .eq("bus_code", busCode);
+
+  if (memberError) {
+    setAuthError("Leden laden mislukt");
+    return;
+  }
+
+  const nameExists = (memberRows || []).some(
+    m => m.name.toLowerCase() === name.toLowerCase()
+  );
+
+  if (nameExists) {
+    setAuthError("Er is al iemand met deze naam in deze bus");
+    return;
+  }
+
+  const userId = genId();
+
+  const { error: insertMemberError } = await supabase
+    .from("bus_members")
+    .insert({
+      bus_code: busCode,
+      member_id: userId,
+      name,
+      role: "hulpmonteur",
+    });
+
+  if (insertMemberError) {
+    setAuthError("Toevoegen aan bus mislukt");
+    return;
+  }
+
+  const { error: updateInviteError } = await supabase
+    .from("invite_codes")
+    .update({
+      is_used: true,
+      used_by_name: name,
+      used_at: new Date().toISOString(),
+    })
+    .eq("id", inviteRow.id);
+
+  if (updateInviteError) {
+    setAuthError("Uitnodigingscode bijwerken mislukt");
+    return;
+  }
+
+  const sess = {
+    userId,
+    name,
+    busCode,
+    role: "hulpmonteur",
   };
 
-  const removeMember = async (mid) => {
-    if (!busInfo || session.role !== "monteur") return;
-    const u = { ...busInfo, members: busInfo.members.filter(m => m.id !== mid) };
-    await sSet("bus_" + busInfo.code, u, true);
-    setBusInfo(u);
+  localStorage.setItem("my-session", JSON.stringify(sess));
+
+  const updatedMembers = [
+    ...(memberRows || []).map(m => ({
+      id: m.member_id,
+      name: m.name,
+      role: m.role,
+    })),
+    { id: userId, name, role: "hulpmonteur" },
+  ];
+
+  const { data: orderRow } = await supabase
+    .from("bus_orders")
+    .select("*")
+    .eq("bus_code", busCode)
+    .maybeSingle();
+
+  setSession(sess);
+  setBusInfo({
+    name: busRow.name,
+    code: busRow.code,
+    ownerEmail: busRow.owner_email,
+    members: updatedMembers,
+  });
+  setCart(orderRow?.items || []);
+  setAuthError("");
+  setLatestInviteCode("");
+};
+
+const removeMember = async (mid) => {
+  if (!busInfo || session.role !== "monteur") return;
+
+  const { error } = await supabase
+    .from("bus_members")
+    .delete()
+    .eq("bus_code", busInfo.code)
+    .eq("member_id", mid);
+
+  if (error) {
+    console.error("Remove member error:", error);
+    showToastMsg("Hulpmonteur verwijderen mislukt");
+    return;
+  }
+
+  const updatedMembers = busInfo.members.filter(m => m.id !== mid);
+
+  setBusInfo({
+    ...busInfo,
+    members: updatedMembers,
+  });
+
+  await cleanupEmptyBus(busInfo.code);
+  await refreshData();
+
+  showToastMsg("Hulpmonteur verwijderd");
+};
+
+const createInviteCode = async () => {
+  if (!busInfo || session?.role !== "monteur") return;
+
+  const inviteCode = genInviteCode();
+
+  const { error } = await supabase
+    .from("invite_codes")
+    .insert({
+      bus_code: busInfo.code,
+      invite_code: inviteCode,
+      created_by: session.name,
+      is_used: false,
+    });
+
+  if (error) {
+    setAuthError("Uitnodigingscode aanmaken mislukt");
+    showToastMsg("Uitnodigingscode aanmaken mislukt");
+    return;
+  }
+
+  setLatestInviteCode(inviteCode);
+  showToastMsg("Nieuwe uitnodigingscode gemaakt");
+};
+
+const reloginExistingBus = async () => {
+  const busCode = reloginBusCode.trim().toUpperCase();
+  const password = reloginPassword.trim();
+
+  if (!busCode || !password) {
+    setAuthError("Vul buscode en wachtwoord in");
+    return;
+  }
+
+  const { data: busRow, error: busError } = await supabase
+    .from("buses")
+    .select("*")
+    .eq("code", busCode)
+    .maybeSingle();
+
+  if (busError || !busRow) {
+    setAuthError("Bus niet gevonden");
+    return;
+  }
+
+  if ((busRow.login_password || "") !== password) {
+    setAuthError("Buscode of wachtwoord is onjuist");
+    return;
+  }
+
+  const { data: memberRows, error: memberError } = await supabase
+    .from("bus_members")
+    .select("*")
+    .eq("bus_code", busCode);
+
+  if (memberError) {
+    setAuthError("Busleden laden mislukt");
+    return;
+  }
+
+  const ownerMember = (memberRows || []).find(
+    m => m.role === "monteur" && m.name === busRow.owner_name && m.active !== false
+  );
+
+  if (!ownerMember) {
+    setAuthError("Hoofdmonteur niet gevonden");
+    return;
+  }
+
+  const sess = {
+    userId: ownerMember.member_id,
+    name: ownerMember.name,
+    email: busRow.owner_email,
+    busCode: busRow.code,
+    role: "monteur",
   };
 
-  const logout = async () => {
-    try { await window.storage.delete("my-session", false); } catch {}
-    setSession(null); setBusInfo(null); setCart([]); setAuthScreen("welcome");
-    setAuthName(""); setAuthCode(""); setAuthBusName(""); setAuthError("");
-    setView("home"); setSide(null); setDrawer(null);
-  };
+  localStorage.setItem("my-session", JSON.stringify(sess));
+
+  setSession(sess);
+  setBusInfo({
+    name: busRow.name,
+    code: busRow.code,
+    ownerEmail: busRow.owner_email,
+    members: (memberRows || [])
+      .filter(m => m.active !== false)
+      .map(m => ({
+        id: m.member_id,
+        name: m.name,
+        role: m.role,
+      })),
+  });
+
+  const { data: orderRow } = await supabase
+    .from("bus_orders")
+    .select("*")
+    .eq("bus_code", busRow.code)
+    .maybeSingle();
+
+  setCart(orderRow?.items || []);
+  setAuthError("");
+  setReloginBusCode("");
+  setReloginPassword("");
+  setLatestInviteCode("");
+  showToastMsg("Opnieuw ingelogd");
+};
+
+const changeBusPassword = async () => {
+  if (!session || session.role !== "monteur" || !busInfo?.code) {
+    showToastMsg("Alleen de monteur kan het wachtwoord wijzigen");
+    return;
+  }
+
+  const password = newPassword.trim();
+  const confirm = confirmNewPassword.trim();
+
+  if (!password || !confirm) {
+    showToastMsg("Vul beide wachtwoordvelden in");
+    return;
+  }
+
+  if (password.length < 6) {
+    showToastMsg("Wachtwoord moet minimaal 6 tekens bevatten");
+    return;
+  }
+
+  if (password !== confirm) {
+    showToastMsg("Wachtwoorden komen niet overeen");
+    return;
+  }
+
+  const { error } = await supabase
+    .from("buses")
+    .update({ login_password: password })
+    .eq("code", busInfo.code);
+
+  if (error) {
+    console.error("Change password error:", error);
+    showToastMsg("Wachtwoord wijzigen mislukt");
+    return;
+  }
+
+  setNewPassword("");
+  setConfirmNewPassword("");
+  showToastMsg("Wachtwoord gewijzigd");
+};
+
+const setTemporaryPassword = async (busCode) => {
+  const tempPassword = "Temp" + Math.floor(1000 + Math.random() * 9000);
+
+  if (!confirm("Nieuw tijdelijk wachtwoord genereren?")) return;
+
+  const { error } = await supabase
+    .from("buses")
+    .update({ login_password: tempPassword })
+    .eq("code", busCode);
+
+  if (error) {
+    console.error("Temp password error:", error);
+    showToastMsg("Tijdelijk wachtwoord instellen mislukt");
+    return;
+  }
+
+  showToastMsg(`Tijdelijk wachtwoord: ${tempPassword}`);
+};
+
+  const loadApprovedCreators = async () => {
+  const currentEmail = (session?.email || busInfo?.ownerEmail || "").toLowerCase();
+  const mainAdminEmail = "m.slootemaker@bonarius.com";
+  const admin = currentEmail === mainAdminEmail;
+
+  setIsMainAdmin(admin);
+
+  if (!admin) {
+    setApprovedCreators([]);
+    return;
+  }
+
+  const { data, error } = await supabase
+    .from("approved_creators")
+    .select("*")
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    console.error("Load error:", error);
+    return;
+  }
+
+  setApprovedCreators(data || []);
+};
+
+const loadAdminOverview = async () => {
+  const currentEmail = (session?.email || busInfo?.ownerEmail || "").toLowerCase();
+  const mainAdminEmail = "m.slootemaker@bonarius.com";
+  const admin = currentEmail === mainAdminEmail;
+
+  setIsMainAdmin(admin);
+
+  if (!admin) {
+    setAllBusMembers([]);
+    setAllBuses([]);
+    return;
+  }
+
+  const { data: busesData, error: busesError } = await supabase
+    .from("buses")
+    .select("*")
+    .order("name", { ascending: true });
+
+  const { data: membersData, error: membersError } = await supabase
+    .from("bus_members")
+    .select("*")
+    .order("bus_code", { ascending: true });
+
+  if (busesError) {
+    console.error("Admin buses load error:", busesError);
+  } else {
+    setAllBuses(busesData || []);
+  }
+
+  if (membersError) {
+    console.error("Admin members load error:", membersError);
+  } else {
+    setAllBusMembers(membersData || []);
+  }
+};
+
+const addApprovedCreator = async () => {
+  const email = newCreatorEmail.trim().toLowerCase();
+
+  if (!email) {
+    showToastMsg("Vul een e-mailadres in");
+    return;
+  }
+
+  const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  if (!emailOk) {
+    showToastMsg("Vul een geldig e-mailadres in");
+    return;
+  }
+
+  const { error } = await supabase
+    .from("approved_creators")
+    .upsert(
+      {
+        email,
+        active: true,
+        single_use: true,
+        used_at: null,
+        used_by_bus_code: null,
+        created_by: session?.email || busInfo?.ownerEmail || "admin",
+      },
+      { onConflict: "email" }
+    );
+
+  if (error) {
+    console.error("approved_creators add error:", error);
+    showToastMsg(`Toevoegen mislukt: ${error.message}`);
+    return;
+  }
+
+  setNewCreatorEmail("");
+  showToastMsg("Monteur toegevoegd");
+  await loadApprovedCreators();
+};
+
+const removeApprovedCreator = async (email) => {
+  const { error } = await supabase
+    .from("approved_creators")
+    .update({ active: false })
+    .eq("email", email);
+
+  if (error) {
+    console.error("Deactivate error:", error);
+    showToastMsg("Deactiveren mislukt");
+    return;
+  }
+
+  showToastMsg("Monteur gedeactiveerd");
+  await loadApprovedCreators();
+};
+
+const reactivateApprovedCreator = async (email) => {
+  const { error } = await supabase
+    .from("approved_creators")
+    .update({ active: true })
+    .eq("email", email);
+
+  if (error) {
+    console.error("Reactivate error:", error);
+    showToastMsg("Activeren mislukt");
+    return;
+  }
+
+  showToastMsg("Monteur opnieuw geactiveerd");
+  await loadApprovedCreators();
+};
+
+const deactivateBusMember = async (memberId, busCode) => {
+  const { error } = await supabase
+    .from("bus_members")
+    .update({ active: false })
+    .eq("member_id", memberId)
+    .eq("bus_code", busCode);
+
+  if (error) {
+    console.error("Deactivate bus member error:", error);
+    showToastMsg("Buslid deactiveren mislukt");
+    return;
+  }
+
+  showToastMsg("Buslid gedeactiveerd");
+  await loadAdminOverview();
+  await refreshData();
+};
+
+const reactivateBusMember = async (memberId, busCode) => {
+  const { error } = await supabase
+    .from("bus_members")
+    .update({ active: true })
+    .eq("member_id", memberId)
+    .eq("bus_code", busCode);
+
+  if (error) {
+    console.error("Reactivate bus member error:", error);
+    showToastMsg("Buslid activeren mislukt");
+    return;
+  }
+
+  showToastMsg("Buslid geactiveerd");
+  await loadAdminOverview();
+  await refreshData();
+};
+
+const deleteBusMemberAdmin = async (memberId, busCode) => {
+  const { error } = await supabase
+    .from("bus_members")
+    .delete()
+    .eq("member_id", memberId)
+    .eq("bus_code", busCode);
+
+  if (error) {
+    console.error("Delete bus member error:", error);
+    showToastMsg("Buslid verwijderen mislukt");
+    return;
+  }
+
+  setAllBusMembers(prev =>
+    prev.filter(m => !(m.member_id === memberId && m.bus_code === busCode))
+  );
+
+  await cleanupEmptyBus(busCode);
+  await loadAdminOverview();
+  await refreshData();
+
+  showToastMsg("Buslid verwijderd");
+};
+
+const cleanupEmptyBus = async (busCode) => {
+  const { data: remainingMembers, error: membersError } = await supabase
+    .from("bus_members")
+    .select("member_id")
+    .eq("bus_code", busCode);
+
+  if (membersError) {
+    console.error("Cleanup members check error:", membersError);
+    return;
+  }
+
+  if ((remainingMembers || []).length > 0) {
+    return;
+  }
+
+  const { error: inviteDeleteError } = await supabase
+    .from("invite_codes")
+    .delete()
+    .eq("bus_code", busCode);
+
+  if (inviteDeleteError) {
+    console.error("Cleanup invite_codes error:", inviteDeleteError);
+  }
+
+  const { error: ordersDeleteError } = await supabase
+    .from("bus_orders")
+    .delete()
+    .eq("bus_code", busCode);
+
+  if (ordersDeleteError) {
+    console.error("Cleanup bus_orders error:", ordersDeleteError);
+  }
+
+  const { error: busDeleteError } = await supabase
+    .from("buses")
+    .delete()
+    .eq("code", busCode);
+
+  if (busDeleteError) {
+    console.error("Cleanup buses error:", busDeleteError);
+    return;
+  }
+
+  setAllBuses(prev => prev.filter(bus => bus.code !== busCode));
+  showToastMsg("Lege bus automatisch verwijderd");
+};
+
+const deleteApprovedCreatorForever = async (email) => {
+  const { error } = await supabase
+    .from("approved_creators")
+    .delete()
+    .eq("email", email);
+
+  if (error) {
+    console.error("Delete approved creator error:", error);
+    showToastMsg("E-mailadres verwijderen mislukt");
+    return;
+  }
+
+  showToastMsg("E-mailadres verwijderd");
+
+  setApprovedCreators(prev => prev.filter(row => row.email !== email));
+
+  await loadApprovedCreators();
+};
+
+  const openLogoutConfirm = () => {
+  setShowLogoutConfirm(true);
+};
+
+const confirmLogout = async () => {
+  localStorage.removeItem("my-session");
+  setSession(null);
+  setBusInfo(null);
+  setCart([]);
+  setAuthScreen("welcome");
+  setAuthName("");
+  setAuthEmail("");
+  setAuthCode("");
+  setAuthBusName("");
+  setAuthPassword("");
+  setNewPassword("");
+  setConfirmNewPassword("");
+  setAuthError("");
+  setView("home");
+  setSide(null);
+  setDrawer(null);
+  setShowLogoutConfirm(false);
+};
+
+const cancelLogout = () => {
+  setShowLogoutConfirm(false);
+};
 
   const showToastMsg = (m) => { setToast(m); if (toastTimer.current) clearTimeout(toastTimer.current); toastTimer.current = setTimeout(() => setToast(null), 2000); };
 
@@ -600,13 +1403,23 @@ export default function App() {
   const cartCount = cart.reduce((s, c) => s + c.quantity, 0);
 
   const sendEmail = async () => {
-    if (cart.length === 0) return;
-    let body = `Beste,\n\nOnderstaande materialen komen uit de busvoorraad van ${busInfo?.name || "onze bus"}. Zou je deze kunnen bestellen op het project zodat we deze weer kunnen aanvullen?\n\n`;
-    cart.forEach(c => { body += `${c.quantity}x ${c.name} (${c.code})\n`; });
-    body += `\nVerzonden door: ${session?.name}`;
-    window.open(`mailto:?subject=Bestellijst ${busInfo?.name || "Bus"}&body=${encodeURIComponent(body)}`, '_self');
-    await clearCartAll(); setShowCart(false); showToastMsg("Bestellijst verzonden!");
-  };
+  if (cart.length === 0) return;
+
+  let body = `Beste,\n\nOnderstaande materialen komen uit mijn busvoorraad die ik heb gebruikt voor bovengenoemde project. Zou je deze kunnen bestellen op het project zodat ik deze weer kan aanvullen?\n\n`;
+
+  cart.forEach(c => {
+    body += `${c.quantity}x ${c.name} (${c.code})\n`;
+  });
+
+  window.open(
+    `mailto:?subject=${encodeURIComponent("Bestelling voor project")}&body=${encodeURIComponent(body)}`,
+    "_self"
+  );
+
+  await clearCartAll();
+  setShowCart(false);
+  showToastMsg("Bestellijst verzonden!");
+};
 
   const goSide = (s) => { setSide(s); setView(s); setSearch(""); };
   const goDrawer = (d) => { setDrawer(d); setView("drawer"); setSearch(""); };
@@ -625,10 +1438,221 @@ export default function App() {
 
   if (!session) return (
     <><style>{CSS}</style><div className="auth-wrap"><div className="auth-card">
-      <div className="auth-logo"><img src="/logo.png" alt="logo" style={{height:'28px',objectFit:'contain',marginRight:8,verticalAlign:'middle'}} />Bonarius</div>
-      {authScreen === "welcome" && <><div className="auth-title">Voorraadbeheer</div><div style={{textAlign:'center',color:'var(--text2)',fontSize:14,marginBottom:24}}>Beheer de voorraad in je bedrijfsbus samen met je team</div><button className="auth-btn auth-btn-primary" onClick={() => { setAuthScreen("create"); setAuthError(""); }}>🚐 Nieuwe bus aanmaken</button><div className="auth-divider">of</div><button className="auth-btn auth-btn-blue" onClick={() => { setAuthScreen("join"); setAuthError(""); }}>🔑 Deelnemen aan een bus</button></>}
-      {authScreen === "create" && <><div className="auth-title">Bus aanmaken</div>{authError && <div className="auth-error">{authError}</div>}<input className="auth-input" placeholder="Jouw naam" value={authName} onChange={e => { setAuthName(e.target.value); setAuthError(""); }} /><input className="auth-input" placeholder="Naam van de bus (bijv. Movano Marchel)" value={authBusName} onChange={e => { setAuthBusName(e.target.value); setAuthError(""); }} /><button className="auth-btn auth-btn-primary" onClick={createBus}>Bus aanmaken</button><button className="auth-btn auth-btn-secondary" onClick={() => setAuthScreen("welcome")}>Terug</button><div className="auth-sub">Je ontvangt een buscode om te delen met je hulpmonteur</div></>}
-      {authScreen === "join" && <><div className="auth-title">Deelnemen</div>{authError && <div className="auth-error">{authError}</div>}<input className="auth-input" placeholder="Jouw naam" value={authName} onChange={e => { setAuthName(e.target.value); setAuthError(""); }} /><input className="auth-input" placeholder="Buscode (bijv. BUS7X2K)" value={authCode} onChange={e => { setAuthCode(e.target.value.toUpperCase()); setAuthError(""); }} style={{fontFamily:'Space Mono, monospace',letterSpacing:2}} /><button className="auth-btn auth-btn-blue" onClick={joinBus}>Deelnemen</button><button className="auth-btn auth-btn-secondary" onClick={() => setAuthScreen("welcome")}>Terug</button><div className="auth-sub">Vraag de buscode aan je monteur</div></>}
+      <div className="auth-logo">
+  <img
+    src="/logo.png"
+    alt="logo"
+    style={{ height: "28px", objectFit: "contain", marginRight: 8, verticalAlign: "middle" }}
+  />
+  Bonarius
+</div>
+
+{authScreen === "welcome" && (
+  <>
+    <div className="auth-title">Voorraadbeheer</div>
+
+    <div style={{ textAlign: "center", color: "var(--text2)", fontSize: 14, marginBottom: 24 }}>
+      Beheer de voorraad in je bedrijfsbus samen met je team
+    </div>
+
+    <button
+      className="auth-btn auth-btn-primary"
+      onClick={() => {
+        setAuthScreen("create");
+        setAuthError("");
+      }}
+    >
+      🚐 Nieuwe bus aanmaken
+    </button>
+
+    <div className="auth-divider">of</div>
+
+    <button
+      className="auth-btn auth-btn-blue"
+      onClick={() => {
+        setAuthScreen("join");
+        setAuthError("");
+      }}
+    >
+      🔑 Deelnemen aan een bus
+    </button>
+
+    <button
+      className="auth-btn auth-btn-secondary"
+      onClick={() => {
+        setAuthScreen("relogin");
+        setReloginBusCode("");
+        setReloginPassword("");
+        setAuthError("");
+      }}
+    >
+      🔐 Opnieuw inloggen op bestaande bus
+    </button>
+  </>
+)}
+
+{authScreen === "create" && (
+  <>
+    <div className="auth-title">Bus aanmaken</div>
+
+    {authError && <div className="auth-error">{authError}</div>}
+
+    <input
+      className="auth-input"
+      placeholder="Jouw naam"
+      value={authName}
+      onChange={e => {
+        setAuthName(e.target.value);
+        setAuthError("");
+      }}
+    />
+
+    <input
+      className="auth-input"
+      placeholder="Jouw e-mailadres"
+      value={authEmail}
+      onChange={e => {
+        setAuthEmail(e.target.value);
+        setAuthError("");
+      }}
+    />
+
+    <input
+      className="auth-input"
+      placeholder="Naam van de bus (bijv. Movano Marchel)"
+      value={authBusName}
+      onChange={e => {
+        setAuthBusName(e.target.value);
+        setAuthError("");
+      }}
+    />
+
+    <input
+      className="auth-input"
+      type="password"
+      placeholder="Kies een wachtwoord"
+      value={authPassword}
+      onChange={e => {
+        setAuthPassword(e.target.value);
+        setAuthError("");
+      }}
+    />
+
+    <button className="auth-btn auth-btn-primary" onClick={createBus}>
+      Bus aanmaken
+    </button>
+
+    <button
+      className="auth-btn auth-btn-secondary"
+      onClick={() => {
+        setAuthScreen("welcome");
+        setAuthPassword("");
+        setAuthError("");
+      }}
+    >
+      Terug
+    </button>
+
+    <div className="auth-sub">
+      Alleen goedgekeurde e-mailadressen mogen een nieuwe bus aanmaken
+    </div>
+  </>
+)}
+
+{authScreen === "join" && (
+  <>
+    <div className="auth-title">Deelnemen</div>
+
+    {authError && <div className="auth-error">{authError}</div>}
+
+    <input
+      className="auth-input"
+      placeholder="Jouw naam"
+      value={authName}
+      onChange={e => {
+        setAuthName(e.target.value);
+        setAuthError("");
+      }}
+    />
+
+    <input
+      className="auth-input"
+      placeholder="Uitnodigingscode (bijv. INV7X2K)"
+      value={authCode}
+      onChange={e => {
+        setAuthCode(e.target.value.toUpperCase());
+        setAuthError("");
+      }}
+      style={{ fontFamily: "Space Mono, monospace", letterSpacing: 2 }}
+    />
+
+    <button className="auth-btn auth-btn-blue" onClick={joinBus}>
+      Deelnemen
+    </button>
+
+    <button
+      className="auth-btn auth-btn-secondary"
+      onClick={() => setAuthScreen("welcome")}
+    >
+      Terug
+    </button>
+
+    <div className="auth-sub">
+      Vraag de uitnodigingscode aan je monteur
+    </div>
+  </>
+)}
+
+{authScreen === "relogin" && (
+  <>
+    <div className="auth-title">Opnieuw inloggen</div>
+
+    {authError && <div className="auth-error">{authError}</div>}
+
+    <input
+      className="auth-input"
+      placeholder="Buscode"
+      value={reloginBusCode}
+      onChange={e => {
+        setReloginBusCode(e.target.value.toUpperCase());
+        setAuthError("");
+      }}
+      style={{ fontFamily: "Space Mono, monospace", letterSpacing: 2 }}
+    />
+
+    <input
+      className="auth-input"
+      type="password"
+      placeholder="Wachtwoord"
+      value={reloginPassword}
+      onChange={e => {
+        setReloginPassword(e.target.value);
+        setAuthError("");
+      }}
+    />
+
+    <button className="auth-btn auth-btn-primary" onClick={reloginExistingBus}>
+      Inloggen
+    </button>
+
+    <button
+      className="auth-btn auth-btn-secondary"
+      onClick={() => {
+        setAuthScreen("welcome");
+        setReloginBusCode("");
+        setReloginPassword("");
+        setAuthError("");
+      }}
+    >
+      Terug
+    </button>
+
+    <div className="auth-sub">
+      Log opnieuw in met je buscode en wachtwoord
+    </div>
+  </>
+)}
+
     </div></div></>
   );
 
@@ -637,11 +1661,299 @@ export default function App() {
       <div className="header"><div className="header-top"><div><button onClick={() => setShowSettings(false)} style={{background:'none',border:'none',color:'white',cursor:'pointer',padding:'4px 0',display:'flex',alignItems:'center',gap:4}}><IconBack/><span style={{fontSize:14}}>Terug</span></button><div style={{display:'flex',alignItems:'center',gap:'10px'}}><img src="/logo.png" alt="logo" style={{height:'28px',objectFit:'contain'}} /><div className="logo-text">Bonarius</div></div><div className="title">Instellingen</div></div><div/></div></div>
       <div style={{padding:16}}>
         <div className="settings-section"><div className="settings-label">Bus</div><div className="settings-value">{busInfo?.name}</div></div>
-        <div className="settings-section"><div className="settings-label">Buscode — tik om te kopiëren</div><div className="bus-code-display" onClick={() => { navigator.clipboard?.writeText(busInfo?.code); showToastMsg("Code gekopieerd!"); }}>{busInfo?.code}</div><div style={{fontSize:12,color:'var(--text2)',textAlign:'center'}}>Deel deze code met je hulpmonteur</div></div>
+        <div className="settings-section">
+  <div className="settings-label">Buscode</div>
+  <div className="bus-code-display">
+    {busInfo?.code}
+  </div>
+  <div style={{fontSize:12,color:'var(--text2)',textAlign:'center'}}>
+    Interne buscode
+  </div>
+</div>
+
+{session.role === "monteur" && (
+  <div className="settings-section">
+    <div className="settings-label">Eenmalige uitnodigingscode</div>
+
+    {latestInviteCode ? (
+      <div
+        className="bus-code-display"
+        onClick={() => {
+          navigator.clipboard?.writeText(latestInviteCode);
+          showToastMsg("Uitnodigingscode gekopieerd!");
+        }}
+      >
+        {latestInviteCode}
+      </div>
+    ) : (
+      <div style={{fontSize:13,color:'var(--text2)',marginBottom:12}}>
+        Maak een code voor een hulpmonteur. Deze code is straks maar 1 keer bruikbaar.
+      </div>
+    )}
+
+    <button
+      className="auth-btn auth-btn-primary"
+      onClick={createInviteCode}
+      style={{marginTop:8}}
+    >
+      Nieuwe uitnodigingscode maken
+    </button>
+  </div>
+)}
+
+{session.role === "monteur" && (
+  <div className="settings-section">
+    <div className="settings-label">Wachtwoord wijzigen</div>
+
+    <input
+      className="auth-input"
+      type="password"
+      placeholder="Nieuw wachtwoord"
+      value={newPassword}
+      onChange={e => setNewPassword(e.target.value)}
+      style={{ marginBottom: 10 }}
+    />
+
+    <input
+      className="auth-input"
+      type="password"
+      placeholder="Herhaal nieuw wachtwoord"
+      value={confirmNewPassword}
+      onChange={e => setConfirmNewPassword(e.target.value)}
+      style={{ marginBottom: 10 }}
+    />
+
+    <button
+      className="auth-btn auth-btn-primary"
+      onClick={changeBusPassword}
+    >
+      Wachtwoord wijzigen
+    </button>
+  </div>
+)}
+
         <div className="settings-section"><div className="settings-label">Ingelogd als</div><div className="settings-value">{session.name} <span style={{color:'var(--accent)',fontSize:12,fontFamily:'Space Mono, monospace'}}>({session.role})</span></div></div>
         <div className="settings-section"><div className="settings-label">Teamleden ({busInfo?.members?.length})</div>{busInfo?.members?.map(m => (<div key={m.id} className="member-item"><div><div className="member-name">{m.name}</div><div className="member-role">{m.role}</div></div>{session.role === "monteur" && m.role === "hulpmonteur" && <button className="member-remove" onClick={() => removeMember(m.id)}>Verwijderen</button>}</div>))}</div>
-        <button className="auth-btn auth-btn-secondary" onClick={logout} style={{marginTop:16}}>Uitloggen</button>
+        {isMainAdmin && (
+  <div className="settings-section">
+    <div className="settings-label">Toegestane monteurs voor nieuwe bussen</div>
+
+    <input
+      className="auth-input"
+      placeholder="E-mailadres toevoegen"
+      value={newCreatorEmail}
+      onChange={e => setNewCreatorEmail(e.target.value)}
+      style={{ marginBottom: 10 }}
+    />
+
+    <button
+      className="auth-btn auth-btn-primary"
+      onClick={addApprovedCreator}
+    >
+      Monteur toevoegen
+    </button>
+
+    <div style={{ marginTop: 12 }}>
+      {approvedCreators.length === 0 ? (
+        <div style={{ fontSize: 13, color: "var(--text2)" }}>
+          Nog geen toegestane monteurs toegevoegd
+        </div>
+      ) : (
+        approvedCreators.map(row => (
+          <div
+  key={row.email}
+  className="member-item"
+  style={{ opacity: row.active ? 1 : 0.5 }}
+>
+            <div>
+              <div className="member-name">{row.email}</div>
+              <div className="member-role">
+  {row.email === "m.slootemaker@bonarius.com"
+    ? "hoofdadmin"
+    : !row.active
+    ? "inactief"
+    : row.used_at
+    ? "al gebruikt"
+    : "toegestaan"}
+</div>
+            </div>
+
+            {row.email !== "m.slootemaker@bonarius.com" && (
+  <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
+    {row.active ? (
+      <button
+        className="member-remove"
+        onClick={() => removeApprovedCreator(row.email)}
+      >
+        Deactiveren
+      </button>
+    ) : (
+      <button
+        className="member-activate"
+        onClick={() => reactivateApprovedCreator(row.email)}
+      >
+        Activeren
+      </button>
+    )}
+
+    <button
+      className="member-remove"
+      onClick={() => deleteApprovedCreatorForever(row.email)}
+    >
+      Definitief verwijderen
+    </button>
+  </div>
+)}
+          </div>
+        ))
+      )}
+    </div>
+  </div>
+)}
+
+{isMainAdmin && (
+  <div className="settings-section">
+    <div className="settings-label">Alle bussen en leden</div>
+
+    {allBuses.length === 0 ? (
+      <div style={{ fontSize: 13, color: "var(--text2)" }}>
+        Geen bussen gevonden
       </div>
+    ) : (
+      allBuses.map(bus => {
+        const membersForBus = allBusMembers.filter(m => m.bus_code === bus.code);
+
+        return (
+          <div
+            key={bus.code}
+            style={{
+              border: "1px solid var(--border)",
+              borderRadius: 12,
+              padding: 12,
+              marginBottom: 12,
+              background: "var(--surface2)",
+            }}
+          >
+            <div style={{ marginBottom: 10 }}>
+              <div style={{ fontWeight: 700 }}>{bus.name}</div>
+              <div
+                style={{
+                  fontSize: 12,
+                  color: "var(--text2)",
+                  fontFamily: "Space Mono, monospace",
+                }}
+              >
+                {bus.code} • eigenaar: {bus.owner_email}
+              </div>
+            </div>
+
+            <button
+  className="auth-btn auth-btn-secondary"
+  onClick={() => setTemporaryPassword(bus.code)}
+  style={{ marginBottom: 12 }}
+>
+  🔑 Tijdelijk wachtwoord maken
+</button>
+
+            {membersForBus.length === 0 ? (
+              <div style={{ fontSize: 13, color: "var(--text2)" }}>
+                Geen leden in deze bus
+              </div>
+            ) : (
+              membersForBus.map(member => (
+                <div
+                  key={`${member.bus_code}-${member.member_id}`}
+                  className="member-item"
+                  style={{ opacity: member.active === false ? 0.5 : 1 }}
+                >
+                  <div>
+                    <div className="member-name">{member.name}</div>
+                    <div className="member-role">
+                      {member.role} • {member.active === false ? "inactief" : "actief"}
+                    </div>
+                  </div>
+
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
+  {member.member_id !== session.userId && (
+    <>
+      {member.active === false ? (
+        <button
+          className="member-activate"
+          onClick={() => reactivateBusMember(member.member_id, member.bus_code)}
+        >
+          Activeren
+        </button>
+      ) : (
+        <button
+          className="member-remove"
+          onClick={() => deactivateBusMember(member.member_id, member.bus_code)}
+        >
+          Deactiveren
+        </button>
+      )}
+
+      <button
+        className="member-remove"
+        onClick={() => deleteBusMemberAdmin(member.member_id, member.bus_code)}
+      >
+        Verwijderen
+      </button>
+    </>
+  )}
+</div>
+                </div>
+              ))
+            )}
+          </div>
+        );
+      })
+    )}
+  </div>
+)}
+
+        <button
+  className="auth-btn auth-btn-secondary"
+  onClick={openLogoutConfirm}
+  style={{ marginTop: 16 }}
+>
+  Uitloggen
+</button>
+      </div>
+
+      {showLogoutConfirm && (
+  <div className="cart-overlay" onClick={cancelLogout}>
+    <div className="cart-sheet" onClick={e => e.stopPropagation()}>
+      <div className="modal-handle" />
+
+      <div className="cart-header">
+        <div className="cart-title">Uitloggen bevestigen</div>
+        <button className="cart-close" onClick={cancelLogout}>✕</button>
+      </div>
+
+      <div style={{ color: "var(--text)", fontSize: 14, lineHeight: 1.5, marginBottom: 16 }}>
+        Weet je zeker dat je wilt uitloggen?
+      </div>
+
+      <div style={{ color: "var(--text2)", fontSize: 14, lineHeight: 1.6, marginBottom: 16 }}>
+        Noteer eerst je buscode goed. Deze heb je later nodig om opnieuw in te loggen.
+      </div>
+
+      <div className="bus-code-display" style={{ marginBottom: 16 }}>
+        {busInfo?.code || session?.busCode || "-"}
+      </div>
+
+      <div className="modal-actions">
+        <button className="btn-cancel" onClick={cancelLogout}>
+          Annuleren
+        </button>
+        <button className="btn-add" onClick={confirmLogout}>
+          Ja, uitloggen
+        </button>
+      </div>
+    </div>
+  </div>
+)}
+
     </div>{toast && <div className="toast">{toast}</div>}</>
   );
 
@@ -659,7 +1971,7 @@ export default function App() {
             <button className="cart-btn" onClick={() => { refreshData(); setShowCart(true); }}><IconCart/> Lijst{cartCount > 0 && <span className="cart-badge">{cartCount}</span>}</button>
             <div style={{display:'flex',gap:8}}>
               <button onClick={() => setShowGlobalSearch(true)} style={{width:44,height:44,borderRadius:12,border:'none',background:'var(--surface2)',color:'white',display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer'}}><IconSearch/></button>
-              <button onClick={() => { refreshData(); setShowSettings(true); }} style={{width:44,height:44,borderRadius:12,border:'none',background:'var(--surface2)',color:'white',display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer'}}><IconGear/></button>
+              <button onClick={() => { refreshData(); loadApprovedCreators(); loadAdminOverview(); setShowSettings(true); }} style={{width:44,height:44,borderRadius:12,border:'none',background:'var(--surface2)',color:'white',display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer'}}><IconGear/></button>
             </div>
           </div>
         </div>
