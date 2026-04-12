@@ -514,9 +514,8 @@ export default function App() {
   const [isMainAdmin, setIsMainAdmin] = useState(false);
   const [allBusMembers, setAllBusMembers] = useState([]);
   const [allBuses, setAllBuses] = useState([]);
-  const [reloginEmail, setReloginEmail] = useState("");
-  const [reloginCode, setReloginCode] = useState("");
-  const [reloginStep, setReloginStep] = useState("request");
+  const [reloginBusCode, setReloginBusCode] = useState("");
+  const [reloginPassword, setReloginPassword] = useState("");
   const [modal, setModal] = useState(null);
   const [qty, setQty] = useState(1);
   const [toast, setToast] = useState(null);
@@ -586,31 +585,6 @@ export default function App() {
 }, []);
 
 const refreshData = useCallback(async () => {
-
-  if (busRow) {
-    const members = (memberRows || [])
-  .filter(m => m.active !== false)
-  .map(m => ({
-    id: m.member_id,
-    name: m.name,
-    role: m.role,
-  }));
-
-    setBusInfo({
-      name: busRow.name,
-      code: busRow.code,
-      ownerEmail: busRow.owner_email,
-      members,
-    });
-
-    if (!members.some(m => m.id === session.userId)) {
-      localStorage.removeItem("my-session");
-      setSession(null);
-      setBusInfo(null);
-      setCart([]);
-    }
-  }
-}, [session]);
 
 useEffect(() => {
   if (!session) return;
@@ -936,86 +910,19 @@ const createInviteCode = async () => {
   showToastMsg("Nieuwe uitnodigingscode gemaakt");
 };
 
-const requestReloginCode = async () => {
-  const email = reloginEmail.trim().toLowerCase();
+const reloginExistingBus = async () => {
+  const busCode = reloginBusCode.trim().toUpperCase();
+  const password = reloginPassword.trim();
 
-  if (!email) {
-    setAuthError("Vul je e-mailadres in");
-    return;
-  }
-
-  const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-  if (!emailOk) {
-    setAuthError("Vul een geldig e-mailadres in");
+  if (!busCode || !password) {
+    setAuthError("Vul buscode en wachtwoord in");
     return;
   }
 
   const { data: busRow, error: busError } = await supabase
     .from("buses")
     .select("*")
-    .eq("owner_email", email)
-    .maybeSingle();
-
-  if (busError || !busRow) {
-    setAuthError("Geen bestaande bus gevonden voor dit e-mailadres");
-    return;
-  }
-
-  const code = Math.random().toString(36).substring(2, 8).toUpperCase();
-
-  const { error: insertError } = await supabase
-    .from("login_codes")
-    .insert({
-      email,
-      code,
-      bus_code: busRow.code,
-      expires_at: new Date(Date.now() + 10 * 60 * 1000).toISOString(),
-      is_used: false,
-    });
-
-  if (insertError) {
-    setAuthError("Inlogcode aanmaken mislukt");
-    return;
-  }
-
-  setAuthError("");
-  setReloginStep("verify");
-  showToastMsg(`Testcode aangemaakt: ${code}`);
-};
-
-const verifyReloginCode = async () => {
-  const email = reloginEmail.trim().toLowerCase();
-  const code = reloginCode.trim().toUpperCase();
-
-  if (!email || !code) {
-    setAuthError("Vul e-mailadres en code in");
-    return;
-  }
-
-  const nowIso = new Date().toISOString();
-
-  const { data: loginRow, error: loginError } = await supabase
-    .from("login_codes")
-    .select("*")
-    .eq("email", email)
-    .eq("code", code)
-    .eq("is_used", false)
-    .maybeSingle();
-
-  if (loginError || !loginRow) {
-    setAuthError("Code is ongeldig");
-    return;
-  }
-
-  if (loginRow.expires_at < nowIso) {
-    setAuthError("Code is verlopen");
-    return;
-  }
-
-  const { data: busRow, error: busError } = await supabase
-    .from("buses")
-    .select("*")
-    .eq("code", loginRow.bus_code)
+    .eq("code", busCode)
     .maybeSingle();
 
   if (busError || !busRow) {
@@ -1023,10 +930,15 @@ const verifyReloginCode = async () => {
     return;
   }
 
+  if ((busRow.login_password || "") !== password) {
+    setAuthError("Buscode of wachtwoord is onjuist");
+    return;
+  }
+
   const { data: memberRows, error: memberError } = await supabase
     .from("bus_members")
     .select("*")
-    .eq("bus_code", busRow.code);
+    .eq("bus_code", busCode);
 
   if (memberError) {
     setAuthError("Busleden laden mislukt");
@@ -1034,18 +946,13 @@ const verifyReloginCode = async () => {
   }
 
   const ownerMember = (memberRows || []).find(
-    m => m.role === "monteur" && m.name === busRow.owner_name
+    m => m.role === "monteur" && m.name === busRow.owner_name && m.active !== false
   );
 
   if (!ownerMember) {
     setAuthError("Hoofdmonteur niet gevonden");
     return;
   }
-
-  await supabase
-    .from("login_codes")
-    .update({ is_used: true })
-    .eq("id", loginRow.id);
 
   const sess = {
     userId: ownerMember.member_id,
@@ -1079,10 +986,10 @@ const verifyReloginCode = async () => {
 
   setCart(orderRow?.items || []);
   setAuthError("");
-  setReloginEmail("");
-  setReloginCode("");
-  setReloginStep("request");
+  setReloginBusCode("");
+  setReloginPassword("");
   setLatestInviteCode("");
+  showToastMsg("Opnieuw ingelogd");
 };
 
   const loadApprovedCreators = async () => {
@@ -1404,7 +1311,17 @@ const deleteApprovedCreatorForever = async (email) => {
   if (!session) return (
     <><style>{CSS}</style><div className="auth-wrap"><div className="auth-card">
       <div className="auth-logo"><img src="/logo.png" alt="logo" style={{height:'28px',objectFit:'contain',marginRight:8,verticalAlign:'middle'}} />Bonarius</div>
-      {authScreen === "welcome" && <><div className="auth-title">Voorraadbeheer</div><div style={{textAlign:'center',color:'var(--text2)',fontSize:14,marginBottom:24}}>Beheer de voorraad in je bedrijfsbus samen met je team</div><button className="auth-btn auth-btn-primary" onClick={() => { setAuthScreen("create"); setAuthError(""); }}>🚐 Nieuwe bus aanmaken</button><div className="auth-divider">of</div><button className="auth-btn auth-btn-blue" onClick={() => { setAuthScreen("join"); setAuthError(""); }}>🔑 Deelnemen aan een bus</button><button className="auth-btn auth-btn-secondary" onClick={() => { setAuthScreen("relogin"); setReloginStep("request"); setReloginEmail(""); setReloginCode(""); setAuthError(""); }}>🔐 Opnieuw inloggen op bestaande bus</button></>}
+      <button
+  className="auth-btn auth-btn-secondary"
+  onClick={() => {
+    setAuthScreen("relogin");
+    setReloginBusCode("");
+    setReloginPassword("");
+    setAuthError("");
+  }}
+>
+  🔐 Opnieuw inloggen op bestaande bus
+</button>
       {authScreen === "create" && <>
   <div className="auth-title">Bus aanmaken</div>
 
@@ -1522,44 +1439,36 @@ const deleteApprovedCreatorForever = async (email) => {
 
     <input
       className="auth-input"
-      placeholder="Jouw e-mailadres"
-      value={reloginEmail}
+      placeholder="Buscode"
+      value={reloginBusCode}
       onChange={e => {
-        setReloginEmail(e.target.value);
+        setReloginBusCode(e.target.value.toUpperCase());
+        setAuthError("");
+      }}
+      style={{ fontFamily: "Space Mono, monospace", letterSpacing: 2 }}
+    />
+
+    <input
+      className="auth-input"
+      type="password"
+      placeholder="Wachtwoord"
+      value={reloginPassword}
+      onChange={e => {
+        setReloginPassword(e.target.value);
         setAuthError("");
       }}
     />
 
-    {reloginStep === "verify" && (
-      <input
-        className="auth-input"
-        placeholder="Ontvangen code"
-        value={reloginCode}
-        onChange={e => {
-          setReloginCode(e.target.value.toUpperCase());
-          setAuthError("");
-        }}
-        style={{ fontFamily: "Space Mono, monospace", letterSpacing: 2 }}
-      />
-    )}
-
-    {reloginStep === "request" ? (
-      <button className="auth-btn auth-btn-primary" onClick={requestReloginCode}>
-        Code opvragen
-      </button>
-    ) : (
-      <button className="auth-btn auth-btn-primary" onClick={verifyReloginCode}>
-        Inloggen
-      </button>
-    )}
+    <button className="auth-btn auth-btn-primary" onClick={reloginExistingBus}>
+      Inloggen
+    </button>
 
     <button
       className="auth-btn auth-btn-secondary"
       onClick={() => {
         setAuthScreen("welcome");
-        setReloginStep("request");
-        setReloginEmail("");
-        setReloginCode("");
+        setReloginBusCode("");
+        setReloginPassword("");
         setAuthError("");
       }}
     >
@@ -1567,7 +1476,7 @@ const deleteApprovedCreatorForever = async (email) => {
     </button>
 
     <div className="auth-sub">
-      Gebruik je e-mailadres om opnieuw toegang te krijgen tot je bestaande bus
+      Log opnieuw in met je buscode en wachtwoord
     </div>
   </>
 )}
