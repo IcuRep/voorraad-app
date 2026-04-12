@@ -99,13 +99,13 @@ const LINKER_LADEN = {
     { name: "Perssok verlopend Profipress 28x22mm", code: "0565024", qty: 6, img: "https://pimassetsprdst.blob.core.windows.net/assets/apc_JPG300X300/86/39/11858639.jpg" },
     { name: "Perssok verlopend Profipress 35x28mm", code: "0565025", qty: 6, img: "https://pimassetsprdst.blob.core.windows.net/assets/apc_JPG300X300/86/40/11858640.jpg" },
     { name: "Perssok verlopend Profipress 42x35mm", code: "0565026", qty: 4, img: "https://pimassetsprdst.blob.core.windows.net/assets/apc_JPG300X300/86/41/11858641.jpg" },
-    { name: "Puntstuk Sanpress brons 15x½ bt.", code: "0565193", qty: 6, img: "https://pimassetsprdst.blob.core.windows.net/assets/apc_JPG300X300/87/31/11858731.jpg" },
-    { name: "Puntstuk Sanpress brons 22x¾ bt.", code: "0565198", qty: 6, img: "https://pimassetsprdst.blob.core.windows.net/assets/apc_JPG300X300/87/36/11858736.jpg" },
-    { name: "Puntstuk Sanpress brons 22x1 bt.", code: "0565199", qty: 6, img: "https://pimassetsprdst.blob.core.windows.net/assets/apc_JPG300X300/87/37/11858737.jpg" },
-    { name: "Puntstuk Sanpress brons 28x¾ bt.", code: "0565200", qty: 6, img: "https://pimassetsprdst.blob.core.windows.net/assets/apc_JPG300X300/87/38/11858738.jpg" },
-    { name: "Puntstuk Sanpress brons 28x1 bt.", code: "0565201", qty: 6, img: "https://pimassetsprdst.blob.core.windows.net/assets/apc_JPG300X300/87/39/11858739.jpg" },
-    { name: "Puntstuk Sanpress brons 35x1 bt.", code: "0565203", qty: 6, img: "https://pimassetsprdst.blob.core.windows.net/assets/apc_JPG300X300/87/41/11858741.jpg" },
-    { name: "Puntstuk Sanpress brons 35x1¼ bt.", code: "0565204", qty: 4, img: "https://pimassetsprdst.blob.core.windows.net/assets/apc_JPG300X300/87/42/11858742.jpg" },
+    { name: "Puntstuk Sanpress brons 15x½ bt.", code: "0565193", qty: 6, img: "https://pimassetsprdst.blob.core.windows.net/assets/apc_JPG300X300/33/45/18703345.jpg" },
+    { name: "Puntstuk Sanpress brons 22x¾ bt.", code: "0565198", qty: 6, img: "https://pimassetsprdst.blob.core.windows.net/assets/apc_JPG300X300/33/45/18703345.jpg" },
+    { name: "Puntstuk Sanpress brons 22x1 bt.", code: "0565199", qty: 6, img: "https://pimassetsprdst.blob.core.windows.net/assets/apc_JPG300X300/33/45/18703345.jpg" },
+    { name: "Puntstuk Sanpress brons 28x¾ bt.", code: "0565200", qty: 6, img: "https://pimassetsprdst.blob.core.windows.net/assets/apc_JPG300X300/33/45/18703345.jpg" },
+    { name: "Puntstuk Sanpress brons 28x1 bt.", code: "0565201", qty: 6, img: "https://pimassetsprdst.blob.core.windows.net/assets/apc_JPG300X300/33/45/18703345.jpg" },
+    { name: "Puntstuk Sanpress brons 35x1 bt.", code: "0565203", qty: 6, img: "https://pimassetsprdst.blob.core.windows.net/assets/apc_JPG300X300/33/45/18703345.jpg" },
+    { name: "Puntstuk Sanpress brons 35x1¼ bt.", code: "0565204", qty: 4, img: "https://pimassetsprdst.blob.core.windows.net/assets/apc_JPG300X300/33/45/18703345.jpg" },
     { name: "Schroefbus recht Sanpress 15x½ bn.", code: "0565113", qty: 6, img: "https://pimassetsprdst.blob.core.windows.net/assets/apc_JPG300X300/86/92/11858692.jpg" },
     { name: "Schroefbus recht Sanpress 22x½ bn.", code: "0565117", qty: 6, img: "https://pimassetsprdst.blob.core.windows.net/assets/apc_JPG300X300/86/96/11858696.jpg" },
     { name: "Schroefbus recht Sanpress 22x¾ bn.", code: "0565118", qty: 6, img: "https://pimassetsprdst.blob.core.windows.net/assets/apc_JPG300X300/86/97/11858697.jpg" },
@@ -1077,6 +1077,25 @@ const changeBusPassword = async () => {
   setNewPassword("");
   setConfirmNewPassword("");
   showToastMsg("Wachtwoord gewijzigd");
+};
+
+const setTemporaryPassword = async (busCode) => {
+  const tempPassword = "Temp" + Math.floor(1000 + Math.random() * 9000);
+
+  if (!confirm("Nieuw tijdelijk wachtwoord genereren?")) return;
+
+  const { error } = await supabase
+    .from("buses")
+    .update({ login_password: tempPassword })
+    .eq("code", busCode);
+
+  if (error) {
+    console.error("Temp password error:", error);
+    showToastMsg("Tijdelijk wachtwoord instellen mislukt");
+    return;
+  }
+
+  showToastMsg(`Tijdelijk wachtwoord: ${tempPassword}`);
 };
 
   const loadApprovedCreators = async () => {
