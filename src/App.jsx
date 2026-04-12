@@ -586,26 +586,6 @@ export default function App() {
 }, []);
 
 const refreshData = useCallback(async () => {
-  if (!session) return;
-
-  const { data: orderRow } = await supabase
-    .from("bus_orders")
-    .select("*")
-    .eq("bus_code", session.busCode)
-    .maybeSingle();
-
-  setCart(orderRow?.items || []);
-
-  const { data: busRow } = await supabase
-    .from("buses")
-    .select("*")
-    .eq("code", session.busCode)
-    .maybeSingle();
-
-  const { data: memberRows } = await supabase
-    .from("bus_members")
-    .select("*")
-    .eq("bus_code", session.busCode);
 
   if (busRow) {
     const members = (memberRows || [])
@@ -660,11 +640,6 @@ const createBus = async () => {
 
   if (!name || !email || !busName || !password) {
     setAuthError("Vul alle velden in");
-    return;
-  }
-
-  if (password.length < 6) {
-    setAuthError("Wachtwoord moet minimaal 6 tekens bevatten");
     return;
   }
 
