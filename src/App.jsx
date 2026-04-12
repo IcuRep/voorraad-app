@@ -546,6 +546,32 @@ const [allBuses, setAllBuses] = useState([]);
       }
 
       const { data: memberRows, error: memberError } = await supabase
+        .from("bus_members")
+        .select("*")
+        .eq("bus_code", sess.busCode);
+
+      const members = memberError || !memberRows
+        ? []
+        : memberRows
+            .filter(m => m.active !== false)
+            .map(m => ({
+              id: m.member_id,
+              name: m.name,
+              role: m.role,
+            }));
+
+      setBusInfo({
+        name: busRow.name,
+        code: busRow.code,
+        ownerEmail: busRow.owner_email,
+        members,
+      });
+
+      const { data: orderRow } = await supabase
+        .from("bus_orders")
+        .select("*")
+        .eq("bus_code", sess.busCode)
+        .maybeSingle();
 
       setCart(orderRow?.items || []);
       setLoading(false);
@@ -1086,6 +1112,27 @@ const reactivateBusMember = async (memberId, busCode) => {
 };
 
 const deleteBusMemberAdmin = async (memberId, busCode) => {
+  const { error } = await supabase
+    .from("bus_members")
+    .delete()
+    .eq("member_id", memberId)
+    .eq("bus_code", busCode);
+
+  if (error) {
+    console.error("Delete bus member error:", error);
+    showToastMsg("Buslid verwijderen mislukt");
+    return;
+  }
+
+  showToastMsg("Buslid verwijderd");
+
+  setAllBusMembers(prev =>
+    prev.filter(m => !(m.member_id === memberId && m.bus_code === busCode))
+  );
+
+  await loadAdminOverview();
+  await refreshData();
+};
 
 const deleteApprovedCreatorForever = async (email) => {
   const { error } = await supabase
