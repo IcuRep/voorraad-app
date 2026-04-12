@@ -634,7 +634,7 @@ const refreshData = useCallback(async () => {
 
 useEffect(() => {
   if (!session) return;
-  pollRef.current = setInterval(refreshData, 8000);
+  pollRef.current = setInterval(refreshData, 3000);
   return () => clearInterval(pollRef.current);
 }, [session, refreshData]);
 
@@ -656,9 +656,20 @@ const createBus = async () => {
   const name = authName.trim();
   const email = authEmail.trim().toLowerCase();
   const busName = authBusName.trim();
+  const password = authPassword.trim();
 
-  if (!name || !email || !busName) {
+  if (!name || !email || !busName || !password) {
     setAuthError("Vul alle velden in");
+    return;
+  }
+
+  if (password.length < 6) {
+    setAuthError("Wachtwoord moet minimaal 6 tekens bevatten");
+    return;
+  }
+
+  if (password.length < 6) {
+    setAuthError("Wachtwoord moet minimaal 6 tekens bevatten");
     return;
   }
 
@@ -707,13 +718,14 @@ const createBus = async () => {
   const code = genBusCode();
 
   const { error: busInsertError } = await supabase
-    .from("buses")
-    .insert({
-      code,
-      name: busName,
-      owner_email: email,
-      owner_name: name,
-    });
+  .from("buses")
+  .insert({
+    code,
+    name: busName,
+    owner_email: email,
+    owner_name: name,
+    login_password: password,
+  });
 
   if (busInsertError) {
     setAuthError("Bus opslaan mislukt");
@@ -774,6 +786,7 @@ const createBus = async () => {
     members: [{ id: userId, name, role: "monteur" }],
   });
   setCart([]);
+  setAuthPassword("");
   setAuthError("");
 };
 
