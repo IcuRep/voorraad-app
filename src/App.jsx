@@ -508,6 +508,7 @@ export default function App() {
   const [showCart, setShowCart] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showGlobalSearch, setShowGlobalSearch] = useState(false);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [latestInviteCode, setLatestInviteCode] = useState("");
   const [approvedCreators, setApprovedCreators] = useState([]);
   const [newCreatorEmail, setNewCreatorEmail] = useState("");
@@ -1356,7 +1357,11 @@ const deleteApprovedCreatorForever = async (email) => {
   await loadApprovedCreators();
 };
 
-  const logout = async () => {
+  const openLogoutConfirm = () => {
+  setShowLogoutConfirm(true);
+};
+
+const confirmLogout = async () => {
   localStorage.removeItem("my-session");
   setSession(null);
   setBusInfo(null);
@@ -1373,6 +1378,11 @@ const deleteApprovedCreatorForever = async (email) => {
   setView("home");
   setSide(null);
   setDrawer(null);
+  setShowLogoutConfirm(false);
+};
+
+const cancelLogout = () => {
+  setShowLogoutConfirm(false);
 };
 
   const showToastMsg = (m) => { setToast(m); if (toastTimer.current) clearTimeout(toastTimer.current); toastTimer.current = setTimeout(() => setToast(null), 2000); };
@@ -1901,8 +1911,49 @@ const deleteApprovedCreatorForever = async (email) => {
   </div>
 )}
 
-        <button className="auth-btn auth-btn-secondary" onClick={logout} style={{marginTop:16}}>Uitloggen</button>
+        <button
+  className="auth-btn auth-btn-secondary"
+  onClick={openLogoutConfirm}
+  style={{ marginTop: 16 }}
+>
+  Uitloggen
+</button>
       </div>
+
+      {showLogoutConfirm && (
+  <div className="cart-overlay" onClick={cancelLogout}>
+    <div className="cart-sheet" onClick={e => e.stopPropagation()}>
+      <div className="modal-handle" />
+
+      <div className="cart-header">
+        <div className="cart-title">Uitloggen bevestigen</div>
+        <button className="cart-close" onClick={cancelLogout}>✕</button>
+      </div>
+
+      <div style={{ color: "var(--text)", fontSize: 14, lineHeight: 1.5, marginBottom: 16 }}>
+        Weet je zeker dat je wilt uitloggen?
+      </div>
+
+      <div style={{ color: "var(--text2)", fontSize: 14, lineHeight: 1.6, marginBottom: 16 }}>
+        Noteer eerst je buscode goed. Deze heb je later nodig om opnieuw in te loggen.
+      </div>
+
+      <div className="bus-code-display" style={{ marginBottom: 16 }}>
+        {busInfo?.code || session?.busCode || "-"}
+      </div>
+
+      <div className="modal-actions">
+        <button className="btn-cancel" onClick={cancelLogout}>
+          Annuleren
+        </button>
+        <button className="btn-add" onClick={confirmLogout}>
+          Ja, uitloggen
+        </button>
+      </div>
+    </div>
+  </div>
+)}
+
     </div>{toast && <div className="toast">{toast}</div>}</>
   );
 
