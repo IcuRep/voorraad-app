@@ -516,6 +516,8 @@ export default function App() {
   const [allBuses, setAllBuses] = useState([]);
   const [reloginBusCode, setReloginBusCode] = useState("");
   const [reloginPassword, setReloginPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmNewPassword, setConfirmNewPassword] = useState("");
   const [modal, setModal] = useState(null);
   const [qty, setQty] = useState(1);
   const [toast, setToast] = useState(null);
@@ -1037,6 +1039,46 @@ const reloginExistingBus = async () => {
   showToastMsg("Opnieuw ingelogd");
 };
 
+const changeBusPassword = async () => {
+  if (!session || session.role !== "monteur" || !busInfo?.code) {
+    showToastMsg("Alleen de monteur kan het wachtwoord wijzigen");
+    return;
+  }
+
+  const password = newPassword.trim();
+  const confirm = confirmNewPassword.trim();
+
+  if (!password || !confirm) {
+    showToastMsg("Vul beide wachtwoordvelden in");
+    return;
+  }
+
+  if (password.length < 6) {
+    showToastMsg("Wachtwoord moet minimaal 6 tekens bevatten");
+    return;
+  }
+
+  if (password !== confirm) {
+    showToastMsg("Wachtwoorden komen niet overeen");
+    return;
+  }
+
+  const { error } = await supabase
+    .from("buses")
+    .update({ login_password: password })
+    .eq("code", busInfo.code);
+
+  if (error) {
+    console.error("Change password error:", error);
+    showToastMsg("Wachtwoord wijzigen mislukt");
+    return;
+  }
+
+  setNewPassword("");
+  setConfirmNewPassword("");
+  showToastMsg("Wachtwoord gewijzigd");
+};
+
   const loadApprovedCreators = async () => {
   const currentEmail = (session?.email || busInfo?.ownerEmail || "").toLowerCase();
   const mainAdminEmail = "m.slootemaker@bonarius.com";
@@ -1306,6 +1348,8 @@ const deleteApprovedCreatorForever = async (email) => {
   setAuthCode("");
   setAuthBusName("");
   setAuthPassword("");
+  setNewPassword("");
+  setConfirmNewPassword("");
   setAuthError("");
   setView("home");
   setSide(null);
@@ -1617,6 +1661,38 @@ const deleteApprovedCreatorForever = async (email) => {
     </button>
   </div>
 )}
+
+{session.role === "monteur" && (
+  <div className="settings-section">
+    <div className="settings-label">Wachtwoord wijzigen</div>
+
+    <input
+      className="auth-input"
+      type="password"
+      placeholder="Nieuw wachtwoord"
+      value={newPassword}
+      onChange={e => setNewPassword(e.target.value)}
+      style={{ marginBottom: 10 }}
+    />
+
+    <input
+      className="auth-input"
+      type="password"
+      placeholder="Herhaal nieuw wachtwoord"
+      value={confirmNewPassword}
+      onChange={e => setConfirmNewPassword(e.target.value)}
+      style={{ marginBottom: 10 }}
+    />
+
+    <button
+      className="auth-btn auth-btn-primary"
+      onClick={changeBusPassword}
+    >
+      Wachtwoord wijzigen
+    </button>
+  </div>
+)}
+
         <div className="settings-section"><div className="settings-label">Ingelogd als</div><div className="settings-value">{session.name} <span style={{color:'var(--accent)',fontSize:12,fontFamily:'Space Mono, monospace'}}>({session.role})</span></div></div>
         <div className="settings-section"><div className="settings-label">Teamleden ({busInfo?.members?.length})</div>{busInfo?.members?.map(m => (<div key={m.id} className="member-item"><div><div className="member-name">{m.name}</div><div className="member-role">{m.role}</div></div>{session.role === "monteur" && m.role === "hulpmonteur" && <button className="member-remove" onClick={() => removeMember(m.id)}>Verwijderen</button>}</div>))}</div>
         {isMainAdmin && (
