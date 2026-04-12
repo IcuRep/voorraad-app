@@ -498,6 +498,7 @@ export default function App() {
   const [authEmail, setAuthEmail] = useState("");
   const [authBusName, setAuthBusName] = useState("");
   const [authCode, setAuthCode] = useState("");
+  const [authPassword, setAuthPassword] = useState("");
   const [authError, setAuthError] = useState("");
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState("home");
@@ -1364,6 +1365,7 @@ const deleteApprovedCreatorForever = async (email) => {
   setAuthEmail("");
   setAuthCode("");
   setAuthBusName("");
+  setAuthPassword("");
   setAuthError("");
   setView("home");
   setSide(null);
@@ -1450,13 +1452,31 @@ const deleteApprovedCreatorForever = async (email) => {
     }}
   />
 
+  <input
+  className="auth-input"
+  type="password"
+  placeholder="Kies een wachtwoord"
+  value={authPassword}
+  onChange={e => {
+    setAuthPassword(e.target.value);
+    setAuthError("");
+  }}
+/>
+
   <button className="auth-btn auth-btn-primary" onClick={createBus}>
     Bus aanmaken
   </button>
 
-  <button className="auth-btn auth-btn-secondary" onClick={() => setAuthScreen("welcome")}>
-    Terug
-  </button>
+  <button
+  className="auth-btn auth-btn-secondary"
+  onClick={() => {
+    setAuthScreen("welcome");
+    setAuthPassword("");
+    setAuthError("");
+  }}
+>
+  Terug
+</button>
 
   <div className="auth-sub">
     Alleen goedgekeurde e-mailadressen mogen een nieuwe bus aanmaken
