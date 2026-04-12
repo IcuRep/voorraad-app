@@ -585,6 +585,51 @@ export default function App() {
 }, []);
 
 const refreshData = useCallback(async () => {
+  if (!session) return;
+
+  const { data: orderRow } = await supabase
+    .from("bus_orders")
+    .select("*")
+    .eq("bus_code", session.busCode)
+    .maybeSingle();
+
+  setCart(orderRow?.items || []);
+
+  const { data: busRow } = await supabase
+    .from("buses")
+    .select("*")
+    .eq("code", session.busCode)
+    .maybeSingle();
+
+  const { data: memberRows } = await supabase
+    .from("bus_members")
+    .select("*")
+    .eq("bus_code", session.busCode);
+
+  const members = (memberRows || [])
+    .filter(m => m.active !== false)
+    .map(m => ({
+      id: m.member_id,
+      name: m.name,
+      role: m.role,
+    }));
+
+  if (!busRow || !members.some(m => m.id === session.userId)) {
+    localStorage.removeItem("my-session");
+    setSession(null);
+    setBusInfo(null);
+    setCart([]);
+    setShowSettings(false);
+    return;
+  }
+
+  setBusInfo({
+    name: busRow.name,
+    code: busRow.code,
+    ownerEmail: busRow.owner_email,
+    members,
+  });
+}, [session]);
 
 useEffect(() => {
   if (!session) return;
@@ -1310,84 +1355,128 @@ const deleteApprovedCreatorForever = async (email) => {
 
   if (!session) return (
     <><style>{CSS}</style><div className="auth-wrap"><div className="auth-card">
-      <div className="auth-logo"><img src="/logo.png" alt="logo" style={{height:'28px',objectFit:'contain',marginRight:8,verticalAlign:'middle'}} />Bonarius</div>
-      <button
-  className="auth-btn auth-btn-secondary"
-  onClick={() => {
-    setAuthScreen("relogin");
-    setReloginBusCode("");
-    setReloginPassword("");
-    setAuthError("");
-  }}
->
-  🔐 Opnieuw inloggen op bestaande bus
-</button>
-      {authScreen === "create" && <>
-  <div className="auth-title">Bus aanmaken</div>
-
-  {authError && <div className="auth-error">{authError}</div>}
-
-  <input
-    className="auth-input"
-    placeholder="Jouw naam"
-    value={authName}
-    onChange={e => {
-      setAuthName(e.target.value);
-      setAuthError("");
-    }}
+      <div className="auth-logo">
+  <img
+    src="/logo.png"
+    alt="logo"
+    style={{ height: "28px", objectFit: "contain", marginRight: 8, verticalAlign: "middle" }}
   />
+  Bonarius
+</div>
 
-  <input
-    className="auth-input"
-    placeholder="Jouw e-mailadres"
-    value={authEmail}
-    onChange={e => {
-      setAuthEmail(e.target.value);
-      setAuthError("");
-    }}
-  />
+{authScreen === "welcome" && (
+  <>
+    <div className="auth-title">Voorraadbeheer</div>
 
-  <input
-    className="auth-input"
-    placeholder="Naam van de bus (bijv. Movano Marchel)"
-    value={authBusName}
-    onChange={e => {
-      setAuthBusName(e.target.value);
-      setAuthError("");
-    }}
-  />
+    <div style={{ textAlign: "center", color: "var(--text2)", fontSize: 14, marginBottom: 24 }}>
+      Beheer de voorraad in je bedrijfsbus samen met je team
+    </div>
 
-  <input
-  className="auth-input"
-  type="password"
-  placeholder="Kies een wachtwoord"
-  value={authPassword}
-  onChange={e => {
-    setAuthPassword(e.target.value);
-    setAuthError("");
-  }}
-/>
+    <button
+      className="auth-btn auth-btn-primary"
+      onClick={() => {
+        setAuthScreen("create");
+        setAuthError("");
+      }}
+    >
+      🚐 Nieuwe bus aanmaken
+    </button>
 
-  <button className="auth-btn auth-btn-primary" onClick={createBus}>
-    Bus aanmaken
-  </button>
+    <div className="auth-divider">of</div>
 
-  <button
-  className="auth-btn auth-btn-secondary"
-  onClick={() => {
-    setAuthScreen("welcome");
-    setAuthPassword("");
-    setAuthError("");
-  }}
->
-  Terug
-</button>
+    <button
+      className="auth-btn auth-btn-blue"
+      onClick={() => {
+        setAuthScreen("join");
+        setAuthError("");
+      }}
+    >
+      🔑 Deelnemen aan een bus
+    </button>
 
-  <div className="auth-sub">
-    Alleen goedgekeurde e-mailadressen mogen een nieuwe bus aanmaken
-  </div>
-</>}
-      {authScreen === "join" && (
+    <button
+      className="auth-btn auth-btn-secondary"
+      onClick={() => {
+        setAuthScreen("relogin");
+        setReloginBusCode("");
+        setReloginPassword("");
+        setAuthError("");
+      }}
+    >
+      🔐 Opnieuw inloggen op bestaande bus
+    </button>
+  </>
+)}
+
+{authScreen === "create" && (
+  <>
+    <div className="auth-title">Bus aanmaken</div>
+
+    {authError && <div className="auth-error">{authError}</div>}
+
+    <input
+      className="auth-input"
+      placeholder="Jouw naam"
+      value={authName}
+      onChange={e => {
+        setAuthName(e.target.value);
+        setAuthError("");
+      }}
+    />
+
+    <input
+      className="auth-input"
+      placeholder="Jouw e-mailadres"
+      value={authEmail}
+      onChange={e => {
+        setAuthEmail(e.target.value);
+        setAuthError("");
+      }}
+    />
+
+    <input
+      className="auth-input"
+      placeholder="Naam van de bus (bijv. Movano Marchel)"
+      value={authBusName}
+      onChange={e => {
+        setAuthBusName(e.target.value);
+        setAuthError("");
+      }}
+    />
+
+    <input
+      className="auth-input"
+      type="password"
+      placeholder="Kies een wachtwoord"
+      value={authPassword}
+      onChange={e => {
+        setAuthPassword(e.target.value);
+        setAuthError("");
+      }}
+    />
+
+    <button className="auth-btn auth-btn-primary" onClick={createBus}>
+      Bus aanmaken
+    </button>
+
+    <button
+      className="auth-btn auth-btn-secondary"
+      onClick={() => {
+        setAuthScreen("welcome");
+        setAuthPassword("");
+        setAuthError("");
+      }}
+    >
+      Terug
+    </button>
+
+    <div className="auth-sub">
+      Alleen goedgekeurde e-mailadressen mogen een nieuwe bus aanmaken
+    </div>
+  </>
+)}
+
+{authScreen === "join" && (
   <>
     <div className="auth-title">Deelnemen</div>
 
