@@ -547,12 +547,6 @@ const [allBuses, setAllBuses] = useState([]);
 
       const { data: memberRows, error: memberError } = await supabase
 
-      const { data: orderRow } = await supabase
-        .from("bus_orders")
-        .select("*")
-        .eq("bus_code", sess.busCode)
-        .maybeSingle();
-
       setCart(orderRow?.items || []);
       setLoading(false);
     } catch (e) {
@@ -1092,22 +1086,6 @@ const reactivateBusMember = async (memberId, busCode) => {
 };
 
 const deleteBusMemberAdmin = async (memberId, busCode) => {
-  const { error } = await supabase
-    .from("bus_members")
-    .delete()
-    .eq("member_id", memberId)
-    .eq("bus_code", busCode);
-
-  if (error) {
-    console.error("Delete bus member error:", error);
-    showToastMsg("Buslid verwijderen mislukt");
-    return;
-  }
-
-  showToastMsg("Buslid verwijderd");
-  await loadAdminOverview();
-  await refreshData();
-};
 
 const deleteApprovedCreatorForever = async (email) => {
   const { error } = await supabase
@@ -1122,6 +1100,9 @@ const deleteApprovedCreatorForever = async (email) => {
   }
 
   showToastMsg("E-mailadres verwijderd");
+
+  setApprovedCreators(prev => prev.filter(row => row.email !== email));
+
   await loadApprovedCreators();
 };
 
@@ -1457,29 +1438,33 @@ const deleteApprovedCreatorForever = async (email) => {
                   </div>
 
                   <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
-                    {member.active === false ? (
-                      <button
-                        className="member-activate"
-                        onClick={() => reactivateBusMember(member.member_id, member.bus_code)}
-                      >
-                        Activeren
-                      </button>
-                    ) : (
-                      <button
-                        className="member-remove"
-                        onClick={() => deactivateBusMember(member.member_id, member.bus_code)}
-                      >
-                        Deactiveren
-                      </button>
-                    )}
+  {member.member_id !== session.userId && (
+    <>
+      {member.active === false ? (
+        <button
+          className="member-activate"
+          onClick={() => reactivateBusMember(member.member_id, member.bus_code)}
+        >
+          Activeren
+        </button>
+      ) : (
+        <button
+          className="member-remove"
+          onClick={() => deactivateBusMember(member.member_id, member.bus_code)}
+        >
+          Deactiveren
+        </button>
+      )}
 
-                    <button
-                      className="member-remove"
-                      onClick={() => deleteBusMemberAdmin(member.member_id, member.bus_code)}
-                    >
-                      Verwijderen
-                    </button>
-                  </div>
+      <button
+        className="member-remove"
+        onClick={() => deleteBusMemberAdmin(member.member_id, member.bus_code)}
+      >
+        Verwijderen
+      </button>
+    </>
+  )}
+</div>
                 </div>
               ))
             )}
