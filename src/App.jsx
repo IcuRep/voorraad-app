@@ -1827,6 +1827,14 @@ const deleteApprovedCreatorForever = async (email) => {
               </div>
             </div>
 
+            <button
+  className="auth-btn auth-btn-secondary"
+  onClick={() => setTemporaryPassword(bus.code)}
+  style={{ marginBottom: 12 }}
+>
+  🔑 Tijdelijk wachtwoord maken
+</button>
+
             {membersForBus.length === 0 ? (
               <div style={{ fontSize: 13, color: "var(--text2)" }}>
                 Geen leden in deze bus
