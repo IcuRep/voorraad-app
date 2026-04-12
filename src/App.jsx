@@ -1414,19 +1414,7 @@ const deleteApprovedCreatorForever = async (email) => {
   if (!session) return (
     <><style>{CSS}</style><div className="auth-wrap"><div className="auth-card">
       <div className="auth-logo"><img src="/logo.png" alt="logo" style={{height:'28px',objectFit:'contain',marginRight:8,verticalAlign:'middle'}} />Bonarius</div>
-      {authScreen === "welcome" && <><div className="auth-title">Voorraadbeheer</div><div style={{textAlign:'center',color:'var(--text2)',fontSize:14,marginBottom:24}}>Beheer de voorraad in je bedrijfsbus samen met je team</div><button className="auth-btn auth-btn-primary" onClick={() => { setAuthScreen("create"); setAuthError(""); }}>🚐 Nieuwe bus aanmaken</button><div className="auth-divider">of</div><button className="auth-btn auth-btn-blue" onClick={() => { setAuthScreen("join"); setAuthError(""); }}>🔑 Deelnemen aan een bus</button></>}
-      <button
-  className="auth-btn auth-btn-secondary"
-  onClick={() => {
-    setAuthScreen("relogin");
-    setReloginStep("request");
-    setReloginEmail("");
-    setReloginCode("");
-    setAuthError("");
-  }}
->
-  🔐 Opnieuw inloggen op bestaande bus
-</button>
+      {authScreen === "welcome" && <><div className="auth-title">Voorraadbeheer</div><div style={{textAlign:'center',color:'var(--text2)',fontSize:14,marginBottom:24}}>Beheer de voorraad in je bedrijfsbus samen met je team</div><button className="auth-btn auth-btn-primary" onClick={() => { setAuthScreen("create"); setAuthError(""); }}>🚐 Nieuwe bus aanmaken</button><div className="auth-divider">of</div><button className="auth-btn auth-btn-blue" onClick={() => { setAuthScreen("join"); setAuthError(""); }}>🔑 Deelnemen aan een bus</button><button className="auth-btn auth-btn-secondary" onClick={() => { setAuthScreen("relogin"); setReloginStep("request"); setReloginEmail(""); setReloginCode(""); setAuthError(""); }}>🔐 Opnieuw inloggen op bestaande bus</button></>}
       {authScreen === "create" && <>
   <div className="auth-title">Bus aanmaken</div>
 
