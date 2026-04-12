@@ -546,18 +546,6 @@ const [allBuses, setAllBuses] = useState([]);
       }
 
       const { data: memberRows, error: memberError } = await supabase
-        .from("bus_members")
-        .select("*")
-        .eq("bus_code", sess.busCode);
-
-      const members = memberError || !memberRows
-
-      setBusInfo({
-        name: busRow.name,
-        code: busRow.code,
-        ownerEmail: busRow.owner_email,
-        members,
-      });
 
       const { data: orderRow } = await supabase
         .from("bus_orders")
