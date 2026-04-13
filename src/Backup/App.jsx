@@ -351,7 +351,7 @@ const RECHTER_LADEN = {
     { name: "Pijpnippel zwart ¾ x 60mm", code: "0190853", qty: 4, img: "https://pimassetsprdst.blob.core.windows.net/assets/apc_JPG300X300/49/37/11854937.jpg" },
     { name: "Pijpnippel zwart 1 x 60mm", code: "0190817", qty: 4, img: "https://pimassetsprdst.blob.core.windows.net/assets/apc_JPG300X300/49/37/11854937.jpg" },
   ],
-  "Lade 7": [],
+  "Lade 7": { _info: "🔨 Beugijzers" },
 };
 
 // ─── STYLES ─────────────────────────────────────────────────────────────
@@ -411,13 +411,58 @@ body { background:var(--bg); color:var(--text); font-family:'DM Sans',sans-serif
 .side-card::after { content:''; position:absolute; bottom:0; left:0; right:0; height:3px; background:var(--accent); transform:scaleX(0); transition:transform .3s; }
 .side-card:hover::after { transform:scaleX(1); }
 .drawer-list { padding:0; }
-.drawer-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
-.drawer-btn { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:16px 8px; cursor:pointer; transition:all .2s; text-align:center; color:var(--text); font-family:'DM Sans',sans-serif; }
-.drawer-btn:active { transform:scale(0.95); }
-.drawer-btn:hover { border-color:var(--accent); background:var(--surface2); }
-.drawer-btn .num { font-family:'Space Mono',monospace; font-size:22px; font-weight:700; color:var(--accent); }
-.drawer-btn .dtxt { font-size:11px; color:var(--text2); margin-top:4px; }
-.drawer-btn.empty { opacity:.35; }
+.shelf-wrap { margin:0 auto; }
+.shelf-linker { width:90%; }
+.shelf-rechter { width:85%; }
+.shelf-title { font-size:11px; color:var(--text2); font-family:'Space Mono',monospace; letter-spacing:2px; text-transform:uppercase; text-align:center; margin-bottom:12px; }
+.shelf-cab { position:relative; background:linear-gradient(170deg,#1e2a38,var(--surface)); border:1px solid var(--border); border-radius:10px; }
+.shelf-top { height:14px; background:linear-gradient(180deg,#343e4e,#2a374a); border-radius:10px 10px 0 0; border-bottom:1px solid var(--border); position:relative; }
+.shelf-top::after { content:''; position:absolute; top:2px; left:20px; right:20px; height:1px; background:rgba(255,255,255,0.05); }
+.shelf-cols { display:flex; }
+.shelf-col { flex:1; display:flex; flex-direction:column; padding:16px 16px 10px; }
+.shelf-col:first-child { border-right:1px solid rgba(255,255,255,0.03); }
+.shelf-col-label { font-size:10px; font-family:'Space Mono',monospace; color:var(--text2); text-align:center; margin-bottom:6px; letter-spacing:1px; }
+.shelf-open { height:28px; border:1px dashed rgba(255,255,255,0.06); border-radius:4px; margin-bottom:8px; display:flex; align-items:center; justify-content:center; font-size:9px; color:var(--text2); font-family:'Space Mono',monospace; letter-spacing:1px; opacity:0.5; }
+.shelf-drawers { display:flex; flex-direction:column; gap:4px; }
+.shelf-base { display:flex; justify-content:space-between; padding:0 12px; }
+.shelf-leg { width:20px; height:14px; background:linear-gradient(180deg,#1e2a38,#151e2a); border-radius:0 0 4px 4px; border:1px solid var(--border); border-top:none; }
+.shelf-rail { position:absolute; top:0; bottom:0; width:14px; z-index:2; background:linear-gradient(90deg,#1a2535,#212f42); }
+.shelf-rail-l { left:-1px; border-radius:10px 0 0 10px; border-right:1px solid rgba(255,255,255,0.04); }
+.shelf-rail-r { right:-1px; border-radius:0 10px 10px 0; border-left:1px solid rgba(255,255,255,0.04); }
+.shelf-rail-m { left:50%; transform:translateX(-50%); width:10px; background:#1a2535; border-left:1px solid rgba(255,255,255,0.03); border-right:1px solid rgba(255,255,255,0.03); border-radius:0; }
+.sdr {
+  position:relative; height:44px; border-radius:5px; cursor:pointer;
+  display:flex; align-items:center; transition:all 0.3s cubic-bezier(0.34,1.56,0.64,1);
+}
+.sdr-face {
+  position:absolute; inset:0; border-radius:5px;
+  background:linear-gradient(180deg,#2a374a 0%,#232e3e 40%,#1e2938 100%);
+  border:1px solid var(--border); transition:all 0.3s;
+}
+.sdr-face::before { content:''; position:absolute; top:0; left:0; right:0; height:1px; background:linear-gradient(90deg,transparent,rgba(255,255,255,0.06),transparent); }
+.sdr:hover .sdr-face { background:linear-gradient(180deg,#2f3f55,#283850,#233048); border-color:var(--accent); }
+.sdr:hover { transform:translateX(10px); }
+.sdr:active { transform:translateX(18px); }
+.sdr-acc { position:absolute; left:0; top:0; bottom:0; width:3px; border-radius:3px; background:var(--accent); opacity:0; transition:opacity 0.3s; z-index:5; }
+.sdr:hover .sdr-acc { opacity:0.7; }
+.sdr-handle-w { position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); z-index:2; }
+.sdr-handle { width:44px; height:10px; border-radius:5px; background:linear-gradient(180deg,#3a4a5e,#2d3b4e); border:1px solid rgba(255,255,255,0.08); box-shadow:0 1px 3px rgba(0,0,0,0.3); transition:all 0.3s; position:relative; }
+.sdr-handle::after { content:''; position:absolute; top:2px; left:10px; right:10px; height:3px; border-radius:2px; background:var(--text2); transition:background 0.3s; }
+.sdr:hover .sdr-handle { border-color:rgba(249,115,22,0.4); }
+.sdr:hover .sdr-handle::after { background:var(--accent); }
+.sdr-lbl { position:absolute; left:10px; top:50%; transform:translateY(-50%); font-size:16px; font-weight:700; color:var(--accent); font-family:'Space Mono',monospace; z-index:2; pointer-events:none; transition:all 0.3s; white-space:nowrap; opacity:0.7; }
+.sdr:hover .sdr-lbl { color:var(--accent); opacity:1; text-shadow:0 0 10px rgba(249,115,22,0.3); }
+.sdr-badge { position:absolute; right:10px; top:50%; transform:translateY(-50%); font-size:10px; font-weight:700; font-family:'Space Mono',monospace; z-index:2; padding:2px 8px; border-radius:8px; pointer-events:none; transition:all 0.3s; background:rgba(249,115,22,0.12); color:var(--accent2); border:1px solid rgba(249,115,22,0.2); max-width:45%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.sdr:hover .sdr-badge { background:rgba(249,115,22,0.2); color:var(--accent); border-color:rgba(249,115,22,0.4); }
+.sdr.info .sdr-face { opacity:0.4; }
+.sdr.info .sdr-lbl { opacity:0.4; }
+.sdr.info .sdr-badge { background:rgba(255,255,255,0.04); color:var(--text2); border-color:rgba(255,255,255,0.06); opacity:0.6; font-family:'DM Sans',sans-serif; font-size:9px; }
+.sdr.info:hover .sdr-face { opacity:0.6; border-color:var(--text2); }
+.sdr.info:hover .sdr-lbl { opacity:0.7; }
+.sdr.info:hover { transform:translateX(6px); }
+.sdr.info .sdr-acc { background:var(--text2); }
+.sdr-single .shelf-cols { display:block; }
+.sdr-single .shelf-col { border:none !important; }
 .article-list { padding:0; }
 .article-item { display:flex; align-items:center; gap:12px; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:12px; margin-bottom:8px; cursor:pointer; transition:all .2s; }
 .article-item:active { transform:scale(0.98); background:var(--surface2); }
@@ -468,6 +513,57 @@ body { background:var(--bg); color:var(--text); font-family:'DM Sans',sans-serif
 .search-bar input { background:none; border:none; color:var(--text); font-size:14px; width:100%; outline:none; font-family:'DM Sans',sans-serif; }
 .search-bar input::placeholder { color:var(--text2); }
 .search-icon { color:var(--text2); font-size:16px; flex-shrink:0; }
+
+/* ── Responsive: tablets ── */
+@media (max-width: 768px) {
+  .shelf-linker, .shelf-rechter { width:95%; }
+  .shelf-col { padding:14px 12px 10px; }
+  .sdr { height:42px; }
+  .sdr-lbl { font-size:14px; left:8px; }
+  .sdr-badge { font-size:9px; right:8px; padding:2px 6px; max-width:40%; }
+  .sdr-handle { width:36px; height:9px; }
+  .sdr-handle::after { left:8px; right:8px; }
+  .shelf-col-label { font-size:9px; }
+}
+
+/* ── Responsive: phones ── */
+@media (max-width: 480px) {
+  .shelf-linker, .shelf-rechter { width:100%; }
+  .shelf-cab { border-radius:8px; }
+  .shelf-top { height:10px; border-radius:8px 8px 0 0; }
+  .shelf-col { padding:10px 8px 8px; }
+  .shelf-cols { gap:0; }
+  .shelf-open { height:22px; font-size:8px; margin-bottom:6px; }
+  .shelf-drawers { gap:3px; }
+  .shelf-rail { width:10px; }
+  .shelf-rail-m { width:6px; }
+  .sdr { height:38px; }
+  .sdr:hover { transform:translateX(6px); }
+  .sdr-lbl { font-size:12px; left:6px; }
+  .sdr-badge { font-size:8px; right:6px; padding:2px 5px; max-width:38%; }
+  .sdr-handle { width:30px; height:8px; }
+  .sdr-handle::after { left:6px; right:6px; height:2px; top:2px; }
+  .shelf-col-label { font-size:8px; letter-spacing:1px; margin-bottom:4px; }
+  .shelf-title { font-size:10px; letter-spacing:1px; margin-bottom:8px; }
+  .shelf-base { padding:0 8px; }
+  .shelf-leg { width:16px; height:12px; }
+  .title { font-size:16px; }
+  .user-badge { font-size:10px; }
+  .header { padding:14px 12px 12px; }
+  .header-top { margin-bottom:8px; }
+  .breadcrumb { font-size:11px; }
+}
+
+/* ── Responsive: very small phones ── */
+@media (max-width: 370px) {
+  .sdr { height:34px; }
+  .sdr-lbl { font-size:10px; left:5px; }
+  .sdr-badge { font-size:7px; right:4px; padding:1px 4px; max-width:35%; }
+  .sdr-handle { width:24px; height:7px; }
+  .shelf-col { padding:8px 6px 6px; }
+  .shelf-open { height:18px; font-size:7px; }
+  .shelf-col-label { font-size:7px; }
+}
 `;
 
 // ─── ICONS ──────────────────────────────────────────────────────────────
@@ -488,6 +584,91 @@ const VanSVG = ({ onClickLeft, onClickRight }) => (
     <g onClick={onClickRight} style={{cursor:'pointer'}}><rect x="130" y="190" width="300" height="70" rx="10" fill="#1c2533" stroke="#3b82f6" strokeWidth="2" strokeDasharray="6 3"/><rect x="130" y="190" width="300" height="70" rx="10" fill="#3b82f6" opacity=".08"/><text x="280" y="222" textAnchor="middle" fill="#3b82f6" fontSize="13" fontFamily="DM Sans" fontWeight="700">RECHTER STELLING</text><text x="280" y="240" textAnchor="middle" fill="#8896a8" fontSize="11" fontFamily="Space Mono, monospace">7 laden • Knel / Malleabel / Las</text></g>
   </svg>
 );
+
+// ─── SHELF DRAWER ───────────────────────────────────────────────────────
+const ShelfDrawer = ({ name, items, onClick }) => {
+  const isInfo = items && items._info;
+  const count = Array.isArray(items) ? items.length : 0;
+  const isEmpty = !isInfo && count === 0;
+  const badgeText = isInfo ? items._info.replace(/^[^\s]+\s/, '') : count > 0 ? `${count} art.` : "leeg";
+
+  return (
+    <div className={`sdr ${isInfo ? 'info' : ''} ${isEmpty ? 'info' : ''}`}
+         onClick={() => { if (!isEmpty || isInfo) onClick(name); }}
+         style={isEmpty && !isInfo ? {opacity:0.3,cursor:'default'} : {}}>
+      <div className="sdr-acc"/>
+      <div className="sdr-face"/>
+      <span className="sdr-lbl">{name}</span>
+      <div className="sdr-handle-w"><div className="sdr-handle"/></div>
+      <span className="sdr-badge">{badgeText}</span>
+    </div>
+  );
+};
+
+const ShelfView = ({ side, data, onOpenDrawer }) => {
+  const entries = Object.entries(data);
+
+  if (side === "rechter") {
+    return (
+      <div className="shelf-wrap shelf-rechter">
+        <div className="shelf-title">7 laden • Knel / Malleabel / Las</div>
+        <div className="shelf-cab sdr-single">
+          <div className="shelf-top"/>
+          <div className="shelf-rail shelf-rail-l"/>
+          <div className="shelf-rail shelf-rail-r"/>
+          <div className="shelf-cols">
+            <div className="shelf-col">
+              <div className="shelf-open">open plank</div>
+              <div className="shelf-drawers">
+                {entries.map(([name, items]) => (
+                  <ShelfDrawer key={name} name={name} items={items} onClick={onOpenDrawer} />
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+        <div className="shelf-base"><div className="shelf-leg"/><div className="shelf-leg"/></div>
+      </div>
+    );
+  }
+
+  // Linker stelling: split 1-7 left, 8-12 right
+  const leftEntries = entries.filter(([n]) => { const num = parseInt(n.replace("Lade ","")); return num <= 7; });
+  const rightEntries = entries.filter(([n]) => { const num = parseInt(n.replace("Lade ","")); return num > 7; });
+
+  return (
+    <div className="shelf-wrap shelf-linker">
+      <div className="shelf-title">12 laden • Prestabo / Profipress / Gas</div>
+      <div className="shelf-cab">
+        <div className="shelf-top"/>
+        <div className="shelf-rail shelf-rail-l"/>
+        <div className="shelf-rail shelf-rail-m"/>
+        <div className="shelf-rail shelf-rail-r"/>
+        <div className="shelf-cols">
+          <div className="shelf-col">
+            <div className="shelf-col-label">1267 MM</div>
+            <div className="shelf-open">open plank</div>
+            <div className="shelf-drawers">
+              {leftEntries.map(([name, items]) => (
+                <ShelfDrawer key={name} name={name} items={items} onClick={onOpenDrawer} />
+              ))}
+            </div>
+          </div>
+          <div className="shelf-col">
+            <div className="shelf-col-label">967 MM</div>
+            <div className="shelf-open">open plank</div>
+            <div className="shelf-drawers">
+              {rightEntries.map(([name, items]) => (
+                <ShelfDrawer key={name} name={name} items={items} onClick={onOpenDrawer} />
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+      <div className="shelf-base"><div className="shelf-leg"/><div className="shelf-leg"/><div className="shelf-leg"/></div>
+    </div>
+  );
+};
 
 // ─── MAIN APP ───────────────────────────────────────────────────────────
 export default function App() {
@@ -1980,7 +2161,7 @@ const cancelLogout = () => {
 
       {view === "home" && <div className="van-view"><div className="van-svg-container"><VanSVG onClickLeft={() => goSide("linker")} onClickRight={() => goSide("rechter")} /></div><div className="side-cards"><div className="side-card" onClick={() => goSide("linker")}><div className="icon">🔧</div><div className="label">Linker Stelling</div><div className="sub">12 laden • Pers & Gas</div></div><div className="side-card" onClick={() => goSide("rechter")}><div className="icon">⚙️</div><div className="label">Rechter Stelling</div><div className="sub">7 laden • Knel & Las</div></div></div></div>}
 
-      {(view === "linker" || view === "rechter") && <div className="drawer-list"><div className="drawer-grid">{Object.entries(data).map(([name, items]) => { const isInfo = items && items._info; const count = Array.isArray(items) ? items.length : 0; const isEmpty = !isInfo && count === 0; return <button key={name} className={`drawer-btn ${isEmpty?'empty':''}`} onClick={() => !isEmpty && goDrawer(name)}><div className="num">{name.replace("Lade ","")}</div><div className="dtxt">{isInfo ? items._info : count > 0 ? `${count} art.` : "Leeg"}</div></button>; })}</div></div>}
+      {(view === "linker" || view === "rechter") && <div className="drawer-list"><ShelfView side={side} data={data} onOpenDrawer={goDrawer} /></div>}
 
       {view === "drawer" && <div className="article-list">
         {isInfoDrawer ? <div style={{textAlign:'center',padding:'60px 20px',color:'var(--text2)'}}><div style={{fontSize:48,marginBottom:16}}>{drawerData._info.split(' ')[0]}</div><div style={{fontSize:16,fontWeight:500,color:'var(--text)'}}>{drawerData._info.substring(drawerData._info.indexOf(' ')+1)}</div><div style={{fontSize:13,marginTop:8}}>Geen bestelbare artikelen</div></div> : <>
